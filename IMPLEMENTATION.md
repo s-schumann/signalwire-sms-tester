@@ -173,3 +173,23 @@ including signed form and verification-off JSON flows using an alphanumeric
 sender. Wrong case, prefixes and alternate numeric senders cannot satisfy
 receipt evidence. Existing JSON verification-off behavior is retained; JSON
 signing remains deferred as requested. No live sender-ID route has been tested.
+
+The **0.1.2** patch is published and verified:
+
+- Source/tag: `51a59291b4a6b14a7bdf83c7e3b280fa399f505b` / `v0.1.2`.
+- Aliases `0.1.2`, `v0.1.2`, `latest` and the full SHA resolve to
+  `sha256:e9b98a4486fdbdefde0bc16112907f1ac62cb653a1401c8fc60eb12976b6a18f`.
+- Linux AMD64/ARM64 manifests and both SBOM/provenance attestations are present.
+- All 49 mocked tests also pass on Node 22.23.4 in the container. Both architecture
+  candidates pass the existing health, HTTPS, auth, log persistence and shutdown
+  checks (AMD64 under emulation).
+- Both published images were pulled by immutable digest and tested with external
+  networking disabled. Their real server entry point sent `From=My Brand2` to a
+  local fake provider, accepted matching JSON status/inbound evidence, rejected
+  mismatched-case receipt evidence, returned a complete mocked round-trip pass,
+  and refused alphanumeric destinations without a second provider request.
+
+Redeploy `schumann/signalwire-sms-tester:0.1.2` and set `SIGNALWIRE_FROM` to the
+desired valid sender ID. The user's existing JSON verification-off setting is
+retained. No live SMS or provider resource change was performed, and Git source
+has not been pushed to any remote.
