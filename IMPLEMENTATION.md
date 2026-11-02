@@ -313,3 +313,24 @@ signature preservation, unchanged outbound matching, deadlines, deduplication,
 terminal immutability, secret-free bounded summaries and per-request override
 rejection. No live `.env`, provider request or SMS was used. Browser access
 remains stopped; publication uses the previously authorized container repository.
+
+The **0.1.5** patch is published and verified:
+
+- Source/tag: `b68852212d5e23830d54fd4c83496d3e2b205752` / `v0.1.5`.
+- Aliases `0.1.5`, `v0.1.5`, `latest` and the full source SHA resolve to
+  `sha256:725fa639788c713a0586796dbfdd8c14b6123cbd9825c9d93838f2dd49202ee6`.
+- Linux AMD64/ARM64 manifests and both SBOM/provenance attestations are present.
+- All **59** mocked tests also pass on container Node 22.23.4. Both architecture
+  candidates pass runtime, HTTPS certificate, authentication, mounted write,
+  versioned startup/log persistence and shutdown checks; AMD64 uses emulation.
+- Both published images were pulled by immutable digest. Their real server was
+  checked with external networking disabled and a local fake provider: default
+  mode rejects rewritten inbound sender syntax, opt-out mode accepts it, and
+  both preserve outbound sender, exact body and receiving To checks. Held checks
+  return HTTP 200 after complete evidence; startup reports the effective flag and
+  ignored sender payloads are absent from summaries/logs.
+
+Redeploy `schumann/signalwire-sms-tester:0.1.5` with `IGNORE_SENDER_FROM=true` in
+CapRover to permit inbound sender rewriting. The default stays `false`. No
+deployment/provider setting was changed, no live SMS was sent and no Git source
+was pushed by these release checks.
