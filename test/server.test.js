@@ -314,6 +314,52 @@ test('synchronous check returns immediately on full evidence, including callback
   assert.equal(result.test.status, 'ok');
 });
 
+test('held JSON check stays pending after inbound and completes on a status callback with null error metadata', async t => {
+  const sent = deferred();
+  const h = await setup(t, { server: true, env: { SIGNALWIRE_VERIFY_WEBHOOKS: 'off', SIGNALWIRE_FROM: 'MyBrand' }, fetch: async (_, init) => {
+    const fields = new URLSearchParams(init.body);
+    sent.resolve(new URL(fields.get('StatusCallback')).searchParams.get('test_id'));
+    return providerResponse();
+  } });
+  const waiting = h.request('/checks/round-trip?timeoutMs=1000&waitTimeoutMs=1000');
+  const id = await sent.promise;
+  await Promise.all([...h.app.operations]);
+  const run = h.store.get(id);
+  assert.equal((await h.post('/webhooks/signalwire/inbound', inboundForm(run, { From: 'MyBrand' }), { headers: { authorization: '' } })).status, 200);
+  assert.equal(h.store.get(id).status, 'pending');
+  assert.deepEqual(h.store.get(id).missing, ['signalWireStatus']);
+  assert.equal(h.store.listenerCount(id), 1);
+  assert.deepEqual(h.logger.recent().find(event => event.type === 'inbound_matched').missing, ['signalWireStatus']);
+  const callback = statusForm({ From: 'MyBrand', ErrorCode: null, ErrorMessage: null });
+  assert.equal((await h.post(`/webhooks/signalwire/status?test_id=${id}`, callback, { headers: { authorization: '' } })).status, 200);
+  const response = await waiting;
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.ok, true);
+  assert.equal(result.test.errorCode, null);
+  assert.deepEqual(result.test.missing, []);
+  assert.equal(h.store.listenerCount(id), 0);
+});
+
+test('rejected webhooks log bounded metadata and reasons without payloads, signatures or query secrets', async t => {
+  const h = await setup(t, { server: true, env: { SIGNALWIRE_VERIFY_WEBHOOKS: 'off' } });
+  const run = (await (await h.post('/tests')).json()).test;
+  const payload = statusForm({ AccountSid: 'unexpected-project', Body: 'private unrelated content', ErrorMessage: 'private provider detail' });
+  const path = `/webhooks/signalwire/status?test_id=${run.id}&opaque=private-query-secret`;
+  assert.equal((await h.post(path, payload, { headers: { authorization: '', 'x-signalwire-signature': 'private-signature' } })).status, 403);
+  assert.equal((await h.post(path, payload, { headers: { 'content-type': 'text/plain' } })).status, 415);
+  assert.equal((await h.post(path, payload, { body: '{invalid' })).status, 400);
+  const events = h.logger.recent().filter(event => event.type === 'webhook_rejected');
+  assert.deepEqual(events.map(event => event.httpStatus), [400, 415, 403]);
+  assert.ok(events.every(event => event.webhook === 'status' && event.testId === run.id && event.reason));
+  assert.equal(events[2].messageSid, 'outbound-1');
+  assert.equal(events[2].projectMatches, false);
+  assert.equal(events[1].contentType, 'unsupported');
+  const logged = JSON.stringify(events);
+  for (const value of ['private unrelated content', 'private provider detail', 'private-query-secret', 'private-signature']) assert.equal(logged.includes(value), false);
+  assert.equal(h.store.get(run.id).expected.signalWireStatus, false);
+});
+
 test('provider timeout during synchronous check returns 504 with failed test ID', async t => {
   const h = await setup(t, { server: true, env: { SIGNALWIRE_REQUEST_TIMEOUT_MS: '5' }, fetch: async () => new Promise(() => {}) });
   const response = await h.request('/checks/round-trip?waitTimeoutMs=100');

@@ -191,7 +191,9 @@ export class Store extends EventEmitter {
     }
     Object.assign(row.record, { inboundMessageSid: sid, inboundReceivedAt: iso(received), inboundLatencyMs: received - row.created });
     row.record.expected.inboundSmsMatched = true;
-    this.recordEvent(row, 'inbound_matched', { direction: 'inbound', inboundMessageSid: sid, durationMs: received - row.created });
+    this.recordEvent(row, 'inbound_matched', { direction: 'inbound', inboundMessageSid: sid, durationMs: received - row.created,
+      missing: Object.keys(row.record.expected).filter(key => !row.record.expected[key]),
+    });
     this.evaluate(row);
   }
 

@@ -137,6 +137,8 @@ For the temporary verification-off setup, both webhook routes also accept
 the default stays `on`. JSON must be a flat Compatibility object with string
 fields (`MessageSid`/`SmsSid`, `AccountSid`, `From`, `To`, `Body`, status fields,
 etc.). `NumMedia`, `NumSegments` and `ErrorCode` may also be nonnegative integers.
+Optional `ErrorCode` and `ErrorMessage` may be `null`; these normalize to empty
+error metadata. Required correlation fields must still have valid types.
 The inbound response remains empty cXML. Account, number, body, media and deadline
 checks still apply. JSON signature verification is deferred: with verification
 `on`, JSON callbacks return `415`; signed form callbacks continue to work.
@@ -293,16 +295,16 @@ Do not configure multiple monitors/replicas to compete for the same run slot.
 
 The container repository is
 [`schumann/signalwire-sms-tester`](https://hub.docker.com/r/schumann/signalwire-sms-tester).
-The current patch release is `0.1.2`, with tags `0.1.2`, `v0.1.2`, `latest` and a
+The current patch release is `0.1.3`, with tags `0.1.3`, `v0.1.3`, `latest` and a
 full commit-SHA alias. Releases target Linux AMD64 and ARM64. Use the version tag
 for a fixed deployment; `latest` advances only for tagged releases.
 
 ```sh
-docker pull schumann/signalwire-sms-tester:0.1.2
+docker pull schumann/signalwire-sms-tester:0.1.3
 docker run -d --name signalwire-sms-tester --restart unless-stopped \
   -p 127.0.0.1:3001:3000 --env-file .env \
   -v signalwire-sms-tester-data:/app/data \
-  schumann/signalwire-sms-tester:0.1.2
+  schumann/signalwire-sms-tester:0.1.3
 ```
 
 The port above assumes an HTTPS proxy on the Docker host. Local source builds:
@@ -358,6 +360,32 @@ hard shutdown guard). A monitor interrupted by deployment should inspect logs
 and allow the cooldown before deliberately starting a new test.
 
 ## Troubleshooting
+
+`inbound_matched` proves receipt evidence, not completion of the full test. Its
+`missing` list shows what is still required; `signalWireStatus` means the separate
+outbound status callback has not been accepted. `REQUIRE_DELIVERED_STATUS=false`
+accepts a recognized status such as `sent` instead of requiring `delivered`; it
+does not remove the status callback requirement. The user explicitly retained
+this requirement after investigating an inbound-matched test that stayed pending.
+
+Rejected webhook requests emit `webhook_rejected` events with route, HTTP status,
+safe reason, content type, and recognized IDs/project-match metadata when available.
+They exclude raw bodies, signatures, auth headers and query values. Check these
+events for `400` malformed fields, `403` signature/project/query mismatch, `415`
+content type/signature-mode mismatch, or `503` missing verification configuration.
+Accepted status callbacks produce `status_received`, `status_staged` or
+`status_unmatched`. If none of these or status `webhook_rejected` events exist,
+inspect the provider/gateway callback attempt and routing to `/webhooks/signalwire/status`.
+Gateways must forward the per-send `StatusCallback`, its query and payload.
+
+For CapRover, the app-specific nginx timeout is under **Apps → this app → HTTP
+Settings → Edit Default Nginx Configurations**. In the existing proxy `location /`
+block, add or update `proxy_read_timeout 150s;` and save the configuration. Preserve
+the existing template and `proxy_pass`. nginx defaults to 60 seconds, which can
+end a 120-second check before the service returns its JSON result.
+([CapRover configuration](https://caprover.com/docs/app-configuration),
+[nginx timeout](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_read_timeout)).
+This changes the HTTP wait budget, not the required SMS evidence.
 
 | Evidence | Check |
 | --- | --- |

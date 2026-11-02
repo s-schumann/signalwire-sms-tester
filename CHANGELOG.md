@@ -3,6 +3,17 @@
 Changes follow Semantic Versioning. The 0.x interface is unstable; minor
 versions may introduce breaking changes.
 
+## 0.1.3 — 2026-11-02
+
+- Accept optional `ErrorCode: null` and `ErrorMessage: null` in JSON callbacks;
+  these previously caused a `400` before status evidence could be recorded.
+- Log rejected webhook requests with safe metadata and reasons, and show remaining
+  required evidence in `inbound_matched` events.
+- Keep the outbound status callback mandatory, as explicitly confirmed by the user.
+- Add regression coverage for a held HTTP check receiving inbound SMS first and
+  completing immediately after a status callback with nullable error metadata.
+- Document callback diagnosis and CapRover's nginx timeout setting.
+
 ## 0.1.2 — 2026-11-02
 
 - Allow `SIGNALWIRE_FROM` to be an E.164 number or alphanumeric sender ID of

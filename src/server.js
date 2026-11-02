@@ -130,21 +130,34 @@ export function createApp(config, store, { fetch = globalThis.fetch, now = Date.
   }
 
   const handler = async (req, res) => {
+    let webhookContext;
     try {
       const url = new URL(req.url, 'http://internal.invalid');
+      const inbound = url.pathname === '/webhooks/signalwire/inbound';
+      const status = url.pathname === '/webhooks/signalwire/status';
+      if (req.method === 'POST' && (inbound || status)) {
+        const contentType = req.headers['content-type']?.split(';')[0].trim().toLowerCase();
+        const testId = url.searchParams.get('test_id');
+        webhookContext = {
+          webhook: inbound ? 'inbound' : 'status',
+          contentType: ['application/json', 'application/x-www-form-urlencoded'].includes(contentType) ? contentType : 'unsupported',
+          ...(testId?.length === 36 && /^[0-9a-f-]+$/i.test(testId) ? { testId } : {}),
+        };
+      }
       if (url.searchParams.has('api_key')) throw new HttpError(400, 'API keys are accepted only in headers');
       if (Number(req.headers['content-length']) > MAX_BODY_BYTES) { req.resume(); throw new HttpError(413, 'Request body exceeds 256 KiB'); }
       if (req.method === 'GET' && url.pathname === '/health') return json(res, 200, { ok: true, time: new Date(now()).toISOString() });
 
-      const inbound = url.pathname === '/webhooks/signalwire/inbound';
-      const status = url.pathname === '/webhooks/signalwire/status';
-      if (req.method === 'POST' && (inbound || status)) {
+      if (webhookContext) {
         const errors = webhookConfigurationErrors(config, inbound);
         if (errors.length) throw new HttpError(503, 'Webhook verification configuration unavailable', { variables: errors });
         const isJson = req.headers['content-type']?.split(';')[0].trim().toLowerCase() === 'application/json';
         const text = await readBody(req, ['application/x-www-form-urlencoded', 'application/json']);
         if (isJson && config.verifyWebhooks) throw new HttpError(415, 'Signed JSON webhooks are not supported yet; verification-enabled webhooks require form encoding');
         const form = isJson ? parseJsonWebhook(text) : parseForm(text);
+        const suppliedSid = form.MessageSid ?? form.SmsSid;
+        if (isSid(suppliedSid)) webhookContext.messageSid = suppliedSid;
+        webhookContext.projectMatches = form.AccountSid === (inbound ? config.inboundProjectId : config.projectId);
         // Configured query parameters must survive the public proxy unchanged.
         const configuredUrl = inbound ? config.inboundWebhookUrl : config.statusWebhookUrl;
         const configuredQuery = configuredUrl ? new URL(configuredUrl).searchParams : [];
@@ -255,6 +268,7 @@ export function createApp(config, store, { fetch = globalThis.fetch, now = Date.
     } catch (error) {
       if (!(error instanceof HttpError)) store.logger.log('request_error', { reason: 'Internal request error' });
       const safe = error instanceof HttpError ? error : new HttpError(500, 'Internal server error');
+      if (webhookContext) store.logger.log('webhook_rejected', { ...webhookContext, httpStatus: safe.statusCode, reason: safe.message });
       const { retryAfter, ...details } = safe.details;
       json(res, safe.statusCode, { ok: false, reason: safe.message, ...details }, retryAfter ? { 'retry-after': String(retryAfter) } : {});
     }

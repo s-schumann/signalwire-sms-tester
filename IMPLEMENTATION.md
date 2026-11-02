@@ -3,6 +3,7 @@
 The service described by `HANDOVER.md` is implemented as an independent Node.js
 ES module project, initially version **0.1.0**, followed by the **0.1.1** JSON
 compatibility and **0.1.2** alphanumeric sender patches. The original handover remains the brief;
+The **0.1.3** callback parsing/diagnostics patch is described below.
 `README.md` describes the delivered behavior and operator setup.
 
 ## Delivered
@@ -193,3 +194,28 @@ Redeploy `schumann/signalwire-sms-tester:0.1.2` and set `SIGNALWIRE_FROM` to the
 desired valid sender ID. The user's existing JSON verification-off setting is
 retained. No live SMS or provider resource change was performed, and Git source
 has not been pushed to any remote.
+
+## Status callback parsing and diagnostics — 0.1.3
+
+Live read-only inspection confirmed a pending test with creation and inbound
+evidence present but `signalWireStatus` absent; it then expired specifically for
+that missing callback. A local held-request reproduction returned immediately
+once a matching mocked status callback arrived. The user explicitly chose to
+keep the outbound status callback required; no completion criterion was relaxed.
+
+The JSON normalizer had a reproducible compatibility issue: optional
+`ErrorCode: null` / `ErrorMessage: null` caused HTTP 400 before status evaluation.
+These fields now normalize to empty error metadata, while required fields stay
+strict. It is not confirmed that these null fields were present in the user's
+actual gateway callback; the deployed callback payload was not available.
+
+Previously, webhook HTTP validation failures did not appear in event logs.
+`webhook_rejected` now records route, HTTP code, safe reason and recognized
+metadata without raw payloads, secrets or query values. `inbound_matched` includes
+the remaining `missing` evidence, making a receipt-only pending run explicit.
+
+Syntax checks and all **52** mocked tests pass on local Node 24.22.2, including
+the inbound-first held JSON request, nullable status metadata, mandatory status
+requirement and secret-free rejection logging. Browser access was stopped at
+the user's request; further work uses source and existing logs. No provider or
+CapRover settings were changed, and no live SMS was sent by this patch work.

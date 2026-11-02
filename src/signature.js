@@ -18,6 +18,7 @@ export function parseJsonWebhook(text) {
   const form = Object.create(null);
   for (const [key, value] of Object.entries(payload)) {
     if (typeof value === 'string') form[key] = value;
+    else if (value === null && ['ErrorCode', 'ErrorMessage'].includes(key)) form[key] = '';
     else if (['NumMedia', 'NumSegments', 'ErrorCode'].includes(key) && Number.isSafeInteger(value) && value >= 0) form[key] = String(value);
     else throw new HttpError(400, 'Webhook JSON fields must be strings; counts and ErrorCode may also be nonnegative integers');
   }

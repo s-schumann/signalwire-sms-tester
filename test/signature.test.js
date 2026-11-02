@@ -34,6 +34,16 @@ test('flat webhook JSON preserves text and normalizes integer counts/error codes
   for (const text of ['{invalid', 'null', '[]', '"text"', '{"Body":12}', '{"Body":null}', '{"From":{}}', '{"NumMedia":-1}', '{"NumMedia":1.5}']) assert.throws(() => parseJsonWebhook(text), error => error.statusCode === 400);
 });
 
+test('optional null JSON error fields do not reject a successful status callback', () => {
+  const parsed = parseJsonWebhook('{"MessageStatus":"sent","ErrorCode":null,"ErrorMessage":null}');
+  assert.equal(parsed.MessageStatus, 'sent');
+  assert.equal(parsed.ErrorCode, '');
+  assert.equal(parsed.ErrorMessage, '');
+  for (const field of ['AccountSid', 'MessageSid', 'From', 'To', 'Body', 'MessageStatus', 'NumMedia']) {
+    assert.throws(() => parseJsonWebhook(JSON.stringify({ [field]: null })), error => error.statusCode === 400);
+  }
+});
+
 test('callback query preservation and external path/encoding are independent of Host headers', () => {
   const config = createConfig({ ...ENV, SIGNALWIRE_STATUS_WEBHOOK_URL: 'https://proxy.test/prefix/%73tatus?one=a%2Fb&two=%2B1' });
   const callback = statusCallbackUrl(config, 'test-id');
