@@ -269,3 +269,22 @@ local socket access passed. Tests never load live `.env` or contact a provider.
 Browser access remains stopped. Publication uses the previously authorized
 `schumann/signalwire-sms-tester` repository; no provider/deployment setting is
 changed and no live SMS is sent by these checks.
+
+The **0.1.4** patch is published and verified:
+
+- Source/tag: `ac0aa7bc182966001419e02cebdc1b4deb42a3c5` / `v0.1.4`.
+- Aliases `0.1.4`, `v0.1.4`, `latest` and the full source SHA resolve to
+  `sha256:7dfd568d23ef40b97abd45758faa1817e0d55924023641cd38e9023ce510fbf2`.
+- Linux AMD64/ARM64 manifests and both SBOM/provenance attestations are present.
+- All **54** mocked tests also pass on container Node 22.23.4. Both architecture
+  candidates pass the scratch runtime, HTTPS, authentication, mounted writes,
+  versioned persistent startup log and clean shutdown checks; AMD64 uses emulation.
+- Both published images were pulled by immutable digest. With external networking
+  disabled, their real server reports version `0.1.4`, preserves `A_.-+*,#9` through
+  a fake provider request and exact-case webhook correlation, and returns the held
+  client HTTP 200 after receipt in default mode or after the additional delivered
+  callback in strict mode. Startup metadata matches each mode and runtime.
+
+Redeploy `schumann/signalwire-sms-tester:0.1.4` in CapRover; the next
+`service_started` line identifies the release. No CapRover/provider setting was
+changed, no Git source was pushed and no live SMS was sent by the release checks.
