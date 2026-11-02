@@ -137,3 +137,24 @@ payloads retain the existing error status behavior.
 Syntax checks and all **45** mocked tests passed on local Node 24.22.2 before
 release preparation. Publication continues to target the authorized
 `schumann/signalwire-sms-tester` repository. No live SMS is sent during checks.
+
+The **0.1.1** patch is published and verified:
+
+- Release source/tag: `3cb1c6b7c696fa3312aeb884c693d3223bb5745c` / `v0.1.1`.
+- Aliases `0.1.1`, `v0.1.1`, `latest` and the full SHA all resolve to
+  `sha256:021a2b07d978833a46ec7eb7f791e97f1c4d5814f85a0a871364f60635007712`.
+- Linux AMD64 and ARM64 are present, each with SBOM/provenance attestations.
+- All 45 mocked tests also pass on the Node 22.23.4 container runtime. Both
+  rebuilt architecture candidates pass the existing health/HTTPS/authentication,
+  persistent-log and shutdown smoke script (AMD64 under emulation).
+- Both actual published images were pulled by immutable digest. A separate
+  external-network-disabled probe started their real server entry point with
+  verification off, posted the reported flat JSON shape with synthetic IDs and
+  numbers, verified empty XML acknowledgment, no created test/pass and clean
+  shutdown. These are container/application checks, not live SMS verification.
+
+Redeploy using `schumann/signalwire-sms-tester:0.1.1` (or pull/recreate `latest`),
+keep the user's explicit `SIGNALWIRE_VERIFY_WEBHOOKS=off`, then start a fresh
+round-trip check so the received SMS contains its generated correlation body.
+JSON signing remains deferred. The Git remote is still unset; no source push,
+provider resource change or live SMS send was performed by this patch release.
