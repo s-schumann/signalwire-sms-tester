@@ -365,3 +365,29 @@ evidence directory, `SECURITY_REVIEW.md` and `CLAUDE.md` prepare an independent
 review; Claude Code itself has not been run. Browser access remains stopped,
 temporary JSON verification-off behavior is retained, and no live SMS/provider
 or CapRover mutation is part of this work.
+
+The **0.1.6** security release is published and verified:
+
+- Source/tag: `17232de1177b8cff40dca945a9d7e2f0bb8f8356` / `v0.1.6`.
+- Aliases `0.1.6`, `v0.1.6`, `latest` and the full source SHA resolve to
+  `sha256:e182e0d6fdc9ddcff9d8b80661d99e7217c723d31b3dfa09fcc3a488dab791b3`.
+- Linux AMD64/ARM64 manifests and each architecture's SPDX/SLSA attestations are
+  present. Publication used a clean detached release checkout and fresh package
+  installation with `--pull --no-cache`.
+- All **63** mocked tests pass locally and on both container architectures.
+  Candidate and actual published image smoke checks pass, including read-only
+  root-owned source, non-root mounted logs, health/auth, CA/HTTPS and shutdown.
+- Both actual published images pass held-client round trips in both sender modes
+  using only a local fake provider with external networking disabled.
+- Both final Trivy scans report zero known OS/application-manifest findings.
+  Scout's sole finding is the documented Alpine branch mismatch for musl;
+  runtime CVE assessment also uses actual Node components and vendor advisories.
+- Git-export/history secret scanning finds no matches. Raw CVE reports, redacted
+  secret summary and test/publication evidence are in `security/review-2026-11-02`.
+
+Git publication uses the configured `s-schumann/signalwire-sms-tester` origin,
+`master` and the annotated `v0.1.6` tag. Post-build verification files are kept in
+a follow-up documentation commit rather than changing the immutable release tag.
+The independent Claude Code review is prepared, not performed. The known JSON
+verification-off deployment mode and callback-proxy routing remain explicit
+review/deployment concerns; no live SMS or external configuration was changed.

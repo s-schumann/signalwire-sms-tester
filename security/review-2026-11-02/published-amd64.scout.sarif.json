@@ -1,0 +1,68 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "fullName": "Docker Scout",
+          "informationUri": "https://docker.com/products/docker-scout",
+          "name": "docker scout",
+          "rules": [
+            {
+              "id": "CVE-2026-107891",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "CVE-2026-107891"
+              },
+              "helpUri": "https://scout.docker.com/v/CVE-2026-107891?s=alpine&n=musl&ns=alpine&t=apk&osn=alpine&osv=3.24&vr=%3C1.2.6-r6",
+              "help": {
+                "text": "\n",
+                "markdown": "> \n\n|                                                                               |\n|Package         pkg:apk/alpine/musl@1.2.6-r3?arch=x86_64&distro=alpine-3.24.3  |\n|Affected range  <1.2.6-r6                                                      |\n|Fixed version   1.2.6-r6                                                       |\n"
+              },
+              "properties": {
+                "affected_version": "<1.2.6-r6",
+                "cvssV3_severity": "UNSPECIFIED",
+                "fixed_version": "1.2.6-r6",
+                "purls": [
+                  "pkg:apk/alpine/musl@1.2.6-r3?arch=x86_64&distro=alpine-3.24.3"
+                ],
+                "security-severity": "3.1",
+                "tags": [
+                  "UNSPECIFIED"
+                ]
+              }
+            }
+          ],
+          "version": "1.27.0"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CVE-2026-107891",
+          "ruleIndex": 0,
+          "kind": "fail",
+          "level": "none",
+          "message": {
+            "text": "Vulnerability   :CVE-2026-107891                                                \nSeverity        :UNSPECIFIED                                                    \nPackage         :pkg:apk/alpine/musl@1.2.6-r3?arch=x86_64&distro=alpine-3.24.3  \nAffected range  :<1.2.6-r6                                                      \nFixed version   :1.2.6-r6                                                       \n"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Dockerfile"
+                },
+                "region": {
+                  "startLine": 18,
+                  "startColumn": 1,
+                  "endLine": 18,
+                  "endColumn": 46
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{"version":"0.1.6","arch":"arm64","ignoreSenderFrom":false,"rewrittenInboundAccepted":false,"outboundSenderStillRequired":true,"bodyAndToStillRequired":true,"heldClientCompleted":true,"network":"none","mockedProviderOnly":true}
+{"version":"0.1.6","arch":"arm64","ignoreSenderFrom":true,"rewrittenInboundAccepted":true,"outboundSenderStillRequired":true,"bodyAndToStillRequired":true,"heldClientCompleted":true,"network":"none","mockedProviderOnly":true}
+{"version":"0.1.6","arch":"x64","ignoreSenderFrom":false,"rewrittenInboundAccepted":false,"outboundSenderStillRequired":true,"bodyAndToStillRequired":true,"heldClientCompleted":true,"network":"none","mockedProviderOnly":true}
+{"version":"0.1.6","arch":"x64","ignoreSenderFrom":true,"rewrittenInboundAccepted":true,"outboundSenderStillRequired":true,"bodyAndToStillRequired":true,"heldClientCompleted":true,"network":"none","mockedProviderOnly":true}

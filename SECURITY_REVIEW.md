@@ -136,6 +136,29 @@ Raw baseline/final reports and tool metadata are in
 only a Git-exported source snapshot and history patch, never the working tree's
 untracked environment files. Inspect its redacted summary, not raw secret values.
 
+### Completed validation
+
+- Syntax checks and **63/63 tests** passed on local Node 24.22.2 and separately on
+  container Node 22.23.4 for ARM64 and emulated AMD64.
+- Both fresh candidates and both published artifacts passed container ownership,
+  auth/health, HTTPS certificate, mounted log persistence and shutdown checks.
+- Real container entry points passed four offline round-trip flows: both sender
+  modes on each architecture, with a local fake provider and external networking
+  disabled. No real SMS was sent.
+- Final immutable ARM64/AMD64 Trivy reports each show **zero** known OS/application
+  manifest vulnerabilities. Scout reports only the vendor-triaged musl finding
+  above, retained unfiltered in both architecture reports.
+- Trivy secret scanning found **zero** matches in the release Git export and the
+  complete reachable Git history patch. This is a heuristic scan, not a guarantee
+  that all possible secrets are absent.
+- Release aliases, architecture manifests and per-platform SBOM/provenance were
+  checked. `release-verification.json` and `validation-summary.json` identify the
+  source SHA, immutable image digest and completed checks.
+
+Final scan/test evidence is committed on `master` after the immutable release
+build. The release tag contains the source, audit brief and baseline evidence;
+use current `master` for the complete post-publication record.
+
 ## Independent reviewer focus
 
 Review authentication/signature bypasses, alias/repeated-parameter ambiguity,

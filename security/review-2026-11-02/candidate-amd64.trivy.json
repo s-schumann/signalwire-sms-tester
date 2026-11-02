@@ -1,0 +1,406 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.76.1"
+  },
+  "ReportID": "01a19d76-913d-7cc8-b900-af371046a52d",
+  "CreatedAt": "2026-11-02T18:12:35.773838221Z",
+  "ArtifactID": "sha256:bef89ef7dde9d0e69e7c448fc91af4a0506492ec252c11350c5065b12a6c6973",
+  "ArtifactName": "/images/amd64.tar",
+  "ArtifactType": "container_image",
+  "Metadata": {
+    "Size": 133981696,
+    "OS": {
+      "Family": "alpine",
+      "Name": "3.24.3"
+    },
+    "ImageID": "sha256:c46df3edf1324a83b15eb5c39a03a46499e728d2848a9c823a23461b0c61df31",
+    "DiffIDs": [
+      "sha256:208389afa37b2733c62b2a2df0772ab3d1e027cc16fc91b61371f471142db38c",
+      "sha256:366d9926dbee1b0a808956dccd4285c0ed8cafa519a3e490c78799ebdbde9b59",
+      "sha256:a4ddb0268ffe4487e32da07e7813d604b476126afb1fb75e324230ed490397b5",
+      "sha256:6a2d0eb383a0a7300222b591c7520849e334167349183498f64ded6afaa130ee",
+      "sha256:06467304a9fd508463bb503e114202c10d3eec43023f4102a108a96d74e63b29",
+      "sha256:564ebc345601bf70612dbc162bce28426c70986e743affb2be429aaccff14df9",
+      "sha256:edee60126da6f42929787a53c9c6b704b6f6a81b5026136e1d72abee779948b6",
+      "sha256:78eac91a6eecdbd92ff599365337e5713a068e23ff44a4d928273d9a4d533d27",
+      "sha256:0fe926d8f151d6d4806aef28c66968a63a11409bde4aade021b09785ab497924",
+      "sha256:10aa06ae82d7948f0290359912d8a3851c1476f7dbfafc425bb5e5a7832515d4",
+      "sha256:9ebcd1af3ae192afb31278b6b77aca2890a4f7034a2c763ab22440fb6b850c35"
+    ],
+    "RepoTags": [
+      "signalwire-sms-tester:local-amd64"
+    ],
+    "Reference": "signalwire-sms-tester:local-amd64",
+    "ImageConfig": {
+      "architecture": "amd64",
+      "created": "2026-11-02T18:11:13.32186696Z",
+      "history": [
+        {
+          "created": "2026-06-04T01:22:25.516362049Z",
+          "created_by": "ENV NODE_ENV=production",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-06-04T01:22:25.516362049Z",
+          "created_by": "ENV HOST=0.0.0.0",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-06-04T01:22:25.516362049Z",
+          "created_by": "ENV PORT=3000",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-06-04T01:22:25.516362049Z",
+          "created_by": "ENV DATA_DIR=/app/data",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-06-04T01:22:25.516362049Z",
+          "created_by": "WORKDIR /app",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:11:13.224082544Z",
+          "created_by": "COPY /usr/local/bin/node /usr/local/bin/node # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:11:13.236245794Z",
+          "created_by": "COPY /lib/ld-musl-*.so.1 /lib/ # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:11:13.24963546Z",
+          "created_by": "COPY /usr/lib/libstdc++.so.6 /usr/lib/ # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:11:13.259180294Z",
+          "created_by": "COPY /usr/lib/libgcc_s.so.1 /usr/lib/ # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:11:13.270088669Z",
+          "created_by": "COPY /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:11:13.281744085Z",
+          "created_by": "COPY /etc/os-release /etc/alpine-release /etc/ # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:11:13.290994252Z",
+          "created_by": "COPY /runtime/ / # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:11:13.300551544Z",
+          "created_by": "COPY /app/package.json /app/package.json # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:11:13.312629544Z",
+          "created_by": "COPY /app/src /app/src # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:11:13.32186696Z",
+          "created_by": "COPY --chown=1000:1000 /app/data /app/data # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:11:13.32186696Z",
+          "created_by": "USER 1000:1000",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-11-02T18:11:13.32186696Z",
+          "created_by": "EXPOSE [3000/tcp]",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-11-02T18:11:13.32186696Z",
+          "created_by": "STOPSIGNAL SIGTERM",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-11-02T18:11:13.32186696Z",
+          "created_by": "HEALTHCHECK {Test:[CMD node -e const http=require('node:http');const r=http.get({host:'127.0.0.1',port:process.env.PORT||3000,path:'/health'},s=\u003e{s.resume();process.exitCode=s.statusCode===200?0:1});r.setTimeout(2000,()=\u003er.destroy());r.on('error',()=\u003e{process.exitCode=1})] Interval:30s Timeout:3s StartPeriod:5s StartInterval:0s Retries:3}",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-11-02T18:11:13.32186696Z",
+          "created_by": "CMD [\"node\" \"src/server.js\"]",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        }
+      ],
+      "os": "linux",
+      "rootfs": {
+        "type": "layers",
+        "diff_ids": [
+          "sha256:208389afa37b2733c62b2a2df0772ab3d1e027cc16fc91b61371f471142db38c",
+          "sha256:366d9926dbee1b0a808956dccd4285c0ed8cafa519a3e490c78799ebdbde9b59",
+          "sha256:a4ddb0268ffe4487e32da07e7813d604b476126afb1fb75e324230ed490397b5",
+          "sha256:6a2d0eb383a0a7300222b591c7520849e334167349183498f64ded6afaa130ee",
+          "sha256:06467304a9fd508463bb503e114202c10d3eec43023f4102a108a96d74e63b29",
+          "sha256:564ebc345601bf70612dbc162bce28426c70986e743affb2be429aaccff14df9",
+          "sha256:edee60126da6f42929787a53c9c6b704b6f6a81b5026136e1d72abee779948b6",
+          "sha256:78eac91a6eecdbd92ff599365337e5713a068e23ff44a4d928273d9a4d533d27",
+          "sha256:0fe926d8f151d6d4806aef28c66968a63a11409bde4aade021b09785ab497924",
+          "sha256:10aa06ae82d7948f0290359912d8a3851c1476f7dbfafc425bb5e5a7832515d4",
+          "sha256:9ebcd1af3ae192afb31278b6b77aca2890a4f7034a2c763ab22440fb6b850c35"
+        ]
+      },
+      "config": {
+        "Cmd": [
+          "node",
+          "src/server.js"
+        ],
+        "Healthcheck": {
+          "Test": [
+            "CMD",
+            "node",
+            "-e",
+            "const http=require('node:http');const r=http.get({host:'127.0.0.1',port:process.env.PORT||3000,path:'/health'},s=\u003e{s.resume();process.exitCode=s.statusCode===200?0:1});r.setTimeout(2000,()=\u003er.destroy());r.on('error',()=\u003e{process.exitCode=1})"
+          ],
+          "Interval": 30000000000,
+          "Timeout": 3000000000,
+          "StartPeriod": 5000000000,
+          "Retries": 3
+        },
+        "Env": [
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "NODE_ENV=production",
+          "HOST=0.0.0.0",
+          "PORT=3000",
+          "DATA_DIR=/app/data"
+        ],
+        "User": "1000:1000",
+        "WorkingDir": "/app",
+        "ExposedPorts": {
+          "3000/tcp": {}
+        },
+        "ArgsEscaped": true,
+        "StopSignal": "SIGTERM"
+      }
+    },
+    "Layers": [
+      {
+        "Size": 1536,
+        "Digest": "sha256:179643c793509f09a1f96e945b5ab88e19b39f8f24f1791edc132a8b47e762fb",
+        "DiffID": "sha256:208389afa37b2733c62b2a2df0772ab3d1e027cc16fc91b61371f471142db38c"
+      },
+      {
+        "Size": 130069504,
+        "Digest": "sha256:2fdc58fe5899e72d9ebeb7cb26ad35ecb6173cbeed447b2813e3f65a9a023bc7",
+        "DiffID": "sha256:366d9926dbee1b0a808956dccd4285c0ed8cafa519a3e490c78799ebdbde9b59"
+      },
+      {
+        "Size": 672768,
+        "Digest": "sha256:b9fe5bb4eaed0a3885cec3931de9b07b613f7eb868ce6cd166432fd584ede34d",
+        "DiffID": "sha256:a4ddb0268ffe4487e32da07e7813d604b476126afb1fb75e324230ed490397b5"
+      },
+      {
+        "Size": 2806784,
+        "Digest": "sha256:9eb560cadca8f455ae42b05b76339fbcc7e1cd3454258b5998cb069314641c4c",
+        "DiffID": "sha256:6a2d0eb383a0a7300222b591c7520849e334167349183498f64ded6afaa130ee"
+      },
+      {
+        "Size": 176640,
+        "Digest": "sha256:ad6285e5c182d0bd7e0e89227225b9d8d791ba7544778312f28d22bc6df33f63",
+        "DiffID": "sha256:06467304a9fd508463bb503e114202c10d3eec43023f4102a108a96d74e63b29"
+      },
+      {
+        "Size": 182272,
+        "Digest": "sha256:92540b61e749d9d017e85c06b1f093fb4367a3dba4c33c0df946b524f2db8036",
+        "DiffID": "sha256:564ebc345601bf70612dbc162bce28426c70986e743affb2be429aaccff14df9"
+      },
+      {
+        "Size": 3584,
+        "Digest": "sha256:004e2e04cb90f7079850ccaa7d1d6d87c1af216290f189a761f04eb0f96415bf",
+        "DiffID": "sha256:edee60126da6f42929787a53c9c6b704b6f6a81b5026136e1d72abee779948b6"
+      },
+      {
+        "Size": 5632,
+        "Digest": "sha256:300c16061cafa6a9b8cd1c9590fd70c2c1520961a3aea513ecb3441d8fbef7d6",
+        "DiffID": "sha256:78eac91a6eecdbd92ff599365337e5713a068e23ff44a4d928273d9a4d533d27"
+      },
+      {
+        "Size": 2560,
+        "Digest": "sha256:598cf866a3d11f48ddfac919a57bcf92db178a267e7286c6b702d7b7d63b9043",
+        "DiffID": "sha256:0fe926d8f151d6d4806aef28c66968a63a11409bde4aade021b09785ab497924"
+      },
+      {
+        "Size": 58368,
+        "Digest": "sha256:cf81eff6e7e8a5e7138372071e1e5a71feb9b000228506ad2d62993498a51088",
+        "DiffID": "sha256:10aa06ae82d7948f0290359912d8a3851c1476f7dbfafc425bb5e5a7832515d4"
+      },
+      {
+        "Size": 2048,
+        "Digest": "sha256:ba52d6e2e3c2f5399a084763ee58c18d2b21f578cbc2ccb5d699195ad4443475",
+        "DiffID": "sha256:9ebcd1af3ae192afb31278b6b77aca2890a4f7034a2c763ab22440fb6b850c35"
+      }
+    ]
+  },
+  "Results": [
+    {
+      "Target": "/images/amd64.tar (alpine 3.24.3)",
+      "Class": "os-pkgs",
+      "Type": "alpine",
+      "Packages": [
+        {
+          "ID": "ca-certificates-bundle@20261020-r0",
+          "Name": "ca-certificates-bundle",
+          "Identifier": {
+            "PURL": "pkg:apk/alpine/ca-certificates-bundle@20261020-r0?arch=x86_64\u0026distro=3.24.3",
+            "UID": "a70608abcaf07d7a"
+          },
+          "Version": "20261020-r0",
+          "Arch": "x86_64",
+          "SrcName": "ca-certificates",
+          "SrcVersion": "20261020-r0",
+          "Licenses": [
+            "MPL-2.0",
+            "MIT"
+          ],
+          "Maintainer": "Natanael Copa \u003cncopa@alpinelinux.org\u003e",
+          "Layer": {
+            "Digest": "sha256:300c16061cafa6a9b8cd1c9590fd70c2c1520961a3aea513ecb3441d8fbef7d6",
+            "DiffID": "sha256:78eac91a6eecdbd92ff599365337e5713a068e23ff44a4d928273d9a4d533d27"
+          },
+          "Digest": "sha1:7c6e635f86aafb46cb3b015d8505b3a5f61156bd",
+          "InstalledFiles": [
+            "etc/ssl/cert.pem",
+            "etc/ssl/certs/ca-certificates.crt",
+            "etc/ssl1.1/cert.pem",
+            "etc/ssl1.1/certs"
+          ],
+          "AnalyzedBy": "apk"
+        },
+        {
+          "ID": "libgcc@15.2.0-r5",
+          "Name": "libgcc",
+          "Identifier": {
+            "PURL": "pkg:apk/alpine/libgcc@15.2.0-r5?arch=x86_64\u0026distro=3.24.3",
+            "UID": "a092110f00cd5329"
+          },
+          "Version": "15.2.0-r5",
+          "Arch": "x86_64",
+          "SrcName": "gcc",
+          "SrcVersion": "15.2.0-r5",
+          "Licenses": [
+            "GPL-2.0-or-later",
+            "LGPL-2.1-or-later"
+          ],
+          "Maintainer": "Ariadne Conill \u003cariadne@dereferenced.org\u003e",
+          "DependsOn": [
+            "musl@1.2.6-r3"
+          ],
+          "Layer": {
+            "Digest": "sha256:300c16061cafa6a9b8cd1c9590fd70c2c1520961a3aea513ecb3441d8fbef7d6",
+            "DiffID": "sha256:78eac91a6eecdbd92ff599365337e5713a068e23ff44a4d928273d9a4d533d27"
+          },
+          "Digest": "sha1:379c156c53e0cc140e87c79c0a3dd22b6ee51552",
+          "InstalledFiles": [
+            "usr/lib/libgcc_s.so.1"
+          ],
+          "AnalyzedBy": "apk"
+        },
+        {
+          "ID": "libstdc++@15.2.0-r5",
+          "Name": "libstdc++",
+          "Identifier": {
+            "PURL": "pkg:apk/alpine/libstdc%2B%2B@15.2.0-r5?arch=x86_64\u0026distro=3.24.3",
+            "UID": "81829e8deb73ca15"
+          },
+          "Version": "15.2.0-r5",
+          "Arch": "x86_64",
+          "SrcName": "gcc",
+          "SrcVersion": "15.2.0-r5",
+          "Licenses": [
+            "GPL-2.0-or-later",
+            "LGPL-2.1-or-later"
+          ],
+          "Maintainer": "Ariadne Conill \u003cariadne@dereferenced.org\u003e",
+          "DependsOn": [
+            "libgcc@15.2.0-r5",
+            "musl@1.2.6-r3"
+          ],
+          "Layer": {
+            "Digest": "sha256:300c16061cafa6a9b8cd1c9590fd70c2c1520961a3aea513ecb3441d8fbef7d6",
+            "DiffID": "sha256:78eac91a6eecdbd92ff599365337e5713a068e23ff44a4d928273d9a4d533d27"
+          },
+          "Digest": "sha1:5f7a2ad7646128ba02cc0d6fb94672b6845648d5",
+          "InstalledFiles": [
+            "usr/lib/libstdc++.so.6",
+            "usr/lib/libstdc++.so.6.0.34"
+          ],
+          "AnalyzedBy": "apk"
+        },
+        {
+          "ID": "musl@1.2.6-r3",
+          "Name": "musl",
+          "Identifier": {
+            "PURL": "pkg:apk/alpine/musl@1.2.6-r3?arch=x86_64\u0026distro=3.24.3",
+            "UID": "43d4b05c5472a58c"
+          },
+          "Version": "1.2.6-r3",
+          "Arch": "x86_64",
+          "SrcName": "musl",
+          "SrcVersion": "1.2.6-r3",
+          "Licenses": [
+            "MIT"
+          ],
+          "Maintainer": "Natanael Copa \u003cncopa@alpinelinux.org\u003e",
+          "Layer": {
+            "Digest": "sha256:300c16061cafa6a9b8cd1c9590fd70c2c1520961a3aea513ecb3441d8fbef7d6",
+            "DiffID": "sha256:78eac91a6eecdbd92ff599365337e5713a068e23ff44a4d928273d9a4d533d27"
+          },
+          "Digest": "sha1:770e8304d958dced98d76997df9e8fa1db5ca32f",
+          "InstalledFiles": [
+            "lib/ld-musl-x86_64.so.1",
+            "lib/libc.musl-x86_64.so.1"
+          ],
+          "AnalyzedBy": "apk"
+        }
+      ]
+    },
+    {
+      "Target": "Node.js",
+      "Class": "lang-pkgs",
+      "Type": "node-pkg",
+      "Packages": [
+        {
+          "ID": "signalwire-sms-tester@0.1.6",
+          "Name": "signalwire-sms-tester",
+          "Identifier": {
+            "PURL": "pkg:npm/signalwire-sms-tester@0.1.6",
+            "UID": "bee7a82fce927834"
+          },
+          "Version": "0.1.6",
+          "Licenses": [
+            "MIT"
+          ],
+          "Layer": {
+            "Digest": "sha256:598cf866a3d11f48ddfac919a57bcf92db178a267e7286c6b702d7b7d63b9043",
+            "DiffID": "sha256:0fe926d8f151d6d4806aef28c66968a63a11409bde4aade021b09785ab497924"
+          },
+          "FilePath": "app/package.json",
+          "AnalyzedBy": "node-pkg"
+        }
+      ]
+    }
+  ]
+}

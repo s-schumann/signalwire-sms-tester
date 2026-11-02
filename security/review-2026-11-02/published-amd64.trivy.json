@@ -1,0 +1,412 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.76.1"
+  },
+  "ReportID": "01a19d7b-081b-712c-99d0-27c252370585",
+  "CreatedAt": "2026-11-02T18:17:28.347077259Z",
+  "ArtifactID": "sha256:fffbb0fb2ec92e3d98305e722e49e60901f54372e359fad38abd400617302634",
+  "ArtifactName": "schumann/signalwire-sms-tester@sha256:e182e0d6fdc9ddcff9d8b80661d99e7217c723d31b3dfa09fcc3a488dab791b3",
+  "ArtifactType": "container_image",
+  "Metadata": {
+    "Size": 133981696,
+    "OS": {
+      "Family": "alpine",
+      "Name": "3.24.3"
+    },
+    "ImageID": "sha256:05a569b0660dce5551d408d540d8baff2cd0873903749682f762bef5ed666134",
+    "DiffIDs": [
+      "sha256:db9b45ffe9424b1fd2a980ecb8f6f37c62a8be2b90fb37d896f43bf790de5535",
+      "sha256:59185c80278b66bfed8b425a8958182d94c88a8fba57851a66e67eb8681429f4",
+      "sha256:bd88c15f4f6fefaeba7b493cf59f00a1a14670754e22ba60bd127690ede12cda",
+      "sha256:81e931b4ff46d899f5fa69217b630dc7e232ed787ae169e0065caa63cd5e7c24",
+      "sha256:140ae153ffcc972074acd02ce7e95eaf7d4e618d503cfccbf42da7930ec6fb4d",
+      "sha256:d233f9cd0b53921d5ed7eea343f239a0585e64c0ce892e5479a8b64464a10220",
+      "sha256:f0f028afcec1fc390421795f184da7e110308483c551b08b5140064f39ee7ead",
+      "sha256:7570bf67c987bfdf1ec4787d27b77f2b79c47be04743124e62763d79e6d21350",
+      "sha256:545448b59273276fc44dcae82f815aa1b91ae13585fec7f4837545f570aa8d0b",
+      "sha256:cc5bcee6c2dbb0240a491b67dfbd604a0947bff9ea317b9690c2f1b5af788c7d",
+      "sha256:b3c11c3857e769ff822b90c17be25fa7335bead3c9a7b4eaeef1092a9cc7fae0"
+    ],
+    "RepoDigests": [
+      "schumann/signalwire-sms-tester@sha256:e182e0d6fdc9ddcff9d8b80661d99e7217c723d31b3dfa09fcc3a488dab791b3"
+    ],
+    "Reference": "schumann/signalwire-sms-tester@sha256:e182e0d6fdc9ddcff9d8b80661d99e7217c723d31b3dfa09fcc3a488dab791b3",
+    "ImageConfig": {
+      "architecture": "amd64",
+      "created": "2026-11-02T18:15:31.229700469Z",
+      "history": [
+        {
+          "created": "2026-06-04T01:29:23.764376007Z",
+          "created_by": "ENV NODE_ENV=production",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-06-04T01:29:23.764376007Z",
+          "created_by": "ENV HOST=0.0.0.0",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-06-04T01:29:23.764376007Z",
+          "created_by": "ENV PORT=3000",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-06-04T01:29:23.764376007Z",
+          "created_by": "ENV DATA_DIR=/app/data",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-06-04T01:29:23.764376007Z",
+          "created_by": "WORKDIR /app",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:15:31.148690677Z",
+          "created_by": "COPY /usr/local/bin/node /usr/local/bin/node # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:15:31.162762219Z",
+          "created_by": "COPY /lib/ld-musl-*.so.1 /lib/ # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:15:31.17170751Z",
+          "created_by": "COPY /usr/lib/libstdc++.so.6 /usr/lib/ # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:15:31.179116969Z",
+          "created_by": "COPY /usr/lib/libgcc_s.so.1 /usr/lib/ # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:15:31.188045469Z",
+          "created_by": "COPY /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:15:31.199179052Z",
+          "created_by": "COPY /etc/os-release /etc/alpine-release /etc/ # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:15:31.206503844Z",
+          "created_by": "COPY /runtime/ / # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:15:31.21421276Z",
+          "created_by": "COPY /app/package.json /app/package.json # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:15:31.221953052Z",
+          "created_by": "COPY /app/src /app/src # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:15:31.229700469Z",
+          "created_by": "COPY --chown=1000:1000 /app/data /app/data # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-11-02T18:15:31.229700469Z",
+          "created_by": "USER 1000:1000",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-11-02T18:15:31.229700469Z",
+          "created_by": "EXPOSE [3000/tcp]",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-11-02T18:15:31.229700469Z",
+          "created_by": "STOPSIGNAL SIGTERM",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-11-02T18:15:31.229700469Z",
+          "created_by": "HEALTHCHECK \u0026{[\"CMD\" \"node\" \"-e\" \"const http=require('node:http');const r=http.get({host:'127.0.0.1',port:process.env.PORT||3000,path:'/health'},s=\u003e{s.resume();process.exitCode=s.statusCode===200?0:1});r.setTimeout(2000,()=\u003er.destroy());r.on('error',()=\u003e{process.exitCode=1})\"] \"30s\" \"3s\" \"5s\" \"0s\" '\\x03'}",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-11-02T18:15:31.229700469Z",
+          "created_by": "CMD [\"node\" \"src/server.js\"]",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        }
+      ],
+      "os": "linux",
+      "rootfs": {
+        "type": "layers",
+        "diff_ids": [
+          "sha256:db9b45ffe9424b1fd2a980ecb8f6f37c62a8be2b90fb37d896f43bf790de5535",
+          "sha256:59185c80278b66bfed8b425a8958182d94c88a8fba57851a66e67eb8681429f4",
+          "sha256:bd88c15f4f6fefaeba7b493cf59f00a1a14670754e22ba60bd127690ede12cda",
+          "sha256:81e931b4ff46d899f5fa69217b630dc7e232ed787ae169e0065caa63cd5e7c24",
+          "sha256:140ae153ffcc972074acd02ce7e95eaf7d4e618d503cfccbf42da7930ec6fb4d",
+          "sha256:d233f9cd0b53921d5ed7eea343f239a0585e64c0ce892e5479a8b64464a10220",
+          "sha256:f0f028afcec1fc390421795f184da7e110308483c551b08b5140064f39ee7ead",
+          "sha256:7570bf67c987bfdf1ec4787d27b77f2b79c47be04743124e62763d79e6d21350",
+          "sha256:545448b59273276fc44dcae82f815aa1b91ae13585fec7f4837545f570aa8d0b",
+          "sha256:cc5bcee6c2dbb0240a491b67dfbd604a0947bff9ea317b9690c2f1b5af788c7d",
+          "sha256:b3c11c3857e769ff822b90c17be25fa7335bead3c9a7b4eaeef1092a9cc7fae0"
+        ]
+      },
+      "config": {
+        "Cmd": [
+          "node",
+          "src/server.js"
+        ],
+        "Healthcheck": {
+          "Test": [
+            "CMD",
+            "node",
+            "-e",
+            "const http=require('node:http');const r=http.get({host:'127.0.0.1',port:process.env.PORT||3000,path:'/health'},s=\u003e{s.resume();process.exitCode=s.statusCode===200?0:1});r.setTimeout(2000,()=\u003er.destroy());r.on('error',()=\u003e{process.exitCode=1})"
+          ],
+          "Interval": 30000000000,
+          "Timeout": 3000000000,
+          "StartPeriod": 5000000000,
+          "Retries": 3
+        },
+        "Env": [
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "NODE_ENV=production",
+          "HOST=0.0.0.0",
+          "PORT=3000",
+          "DATA_DIR=/app/data"
+        ],
+        "Labels": {
+          "org.opencontainers.image.licenses": "MIT",
+          "org.opencontainers.image.revision": "17232de1177b8cff40dca945a9d7e2f0bb8f8356",
+          "org.opencontainers.image.source": "https://github.com/s-schumann/signalwire-sms-tester",
+          "org.opencontainers.image.version": "0.1.6"
+        },
+        "User": "1000:1000",
+        "WorkingDir": "/app",
+        "ExposedPorts": {
+          "3000/tcp": {}
+        },
+        "ArgsEscaped": true,
+        "StopSignal": "SIGTERM"
+      }
+    },
+    "Layers": [
+      {
+        "Size": 1536,
+        "Digest": "sha256:d615e0a0ebde5ef491f753e776daf5d7905708a05ebe5b3b63600b0b4285278d",
+        "DiffID": "sha256:db9b45ffe9424b1fd2a980ecb8f6f37c62a8be2b90fb37d896f43bf790de5535"
+      },
+      {
+        "Size": 130069504,
+        "Digest": "sha256:aebeabe820f086dc09f25252a00a3bf51ec6f98dbb66a871fc1979427f60dc1c",
+        "DiffID": "sha256:59185c80278b66bfed8b425a8958182d94c88a8fba57851a66e67eb8681429f4"
+      },
+      {
+        "Size": 672768,
+        "Digest": "sha256:b6d0c31ce6fcf22b50e7e937318259aa51532cce73b88d72fbd6e05790333d42",
+        "DiffID": "sha256:bd88c15f4f6fefaeba7b493cf59f00a1a14670754e22ba60bd127690ede12cda"
+      },
+      {
+        "Size": 2806784,
+        "Digest": "sha256:0e44131c7a188755bb0bf8b7d6faa4673ba16edbf1bc28774eb206fa97dee1a2",
+        "DiffID": "sha256:81e931b4ff46d899f5fa69217b630dc7e232ed787ae169e0065caa63cd5e7c24"
+      },
+      {
+        "Size": 176640,
+        "Digest": "sha256:0d1be14dd5c640efbab195b9a6ec2c7cfa8aa970f58758c61a908634ef61cd45",
+        "DiffID": "sha256:140ae153ffcc972074acd02ce7e95eaf7d4e618d503cfccbf42da7930ec6fb4d"
+      },
+      {
+        "Size": 182272,
+        "Digest": "sha256:b6f1ad0281a2e3fc126c015760d36f5be29ec66e3a511d30f0bdb801a13571b4",
+        "DiffID": "sha256:d233f9cd0b53921d5ed7eea343f239a0585e64c0ce892e5479a8b64464a10220"
+      },
+      {
+        "Size": 3584,
+        "Digest": "sha256:92a54d87797d75f2211c6f0da26d0a51e6f347db50ea1fd3b2a6c38413362f54",
+        "DiffID": "sha256:f0f028afcec1fc390421795f184da7e110308483c551b08b5140064f39ee7ead"
+      },
+      {
+        "Size": 5632,
+        "Digest": "sha256:836c50e533d3a1d116717257083d48282ee0b852dc77951066cfa1c6773bca8a",
+        "DiffID": "sha256:7570bf67c987bfdf1ec4787d27b77f2b79c47be04743124e62763d79e6d21350"
+      },
+      {
+        "Size": 2560,
+        "Digest": "sha256:6dc98d316c7579c005c4d7ee059449b3d39f483106a54bc1440d335b75c2fdf5",
+        "DiffID": "sha256:545448b59273276fc44dcae82f815aa1b91ae13585fec7f4837545f570aa8d0b"
+      },
+      {
+        "Size": 58368,
+        "Digest": "sha256:2604312226ca847c9f1b628a2ad4af6f2aa91bdc696adb97cfefa7a4a38d3ff4",
+        "DiffID": "sha256:cc5bcee6c2dbb0240a491b67dfbd604a0947bff9ea317b9690c2f1b5af788c7d"
+      },
+      {
+        "Size": 2048,
+        "Digest": "sha256:bc908d520c984b784f48afdb3901b305701309b8a033a419e9cadf21e34a6eda",
+        "DiffID": "sha256:b3c11c3857e769ff822b90c17be25fa7335bead3c9a7b4eaeef1092a9cc7fae0"
+      }
+    ]
+  },
+  "Results": [
+    {
+      "Target": "schumann/signalwire-sms-tester@sha256:e182e0d6fdc9ddcff9d8b80661d99e7217c723d31b3dfa09fcc3a488dab791b3 (alpine 3.24.3)",
+      "Class": "os-pkgs",
+      "Type": "alpine",
+      "Packages": [
+        {
+          "ID": "ca-certificates-bundle@20261020-r0",
+          "Name": "ca-certificates-bundle",
+          "Identifier": {
+            "PURL": "pkg:apk/alpine/ca-certificates-bundle@20261020-r0?arch=x86_64\u0026distro=3.24.3",
+            "UID": "a70608abcaf07d7a"
+          },
+          "Version": "20261020-r0",
+          "Arch": "x86_64",
+          "SrcName": "ca-certificates",
+          "SrcVersion": "20261020-r0",
+          "Licenses": [
+            "MPL-2.0",
+            "MIT"
+          ],
+          "Maintainer": "Natanael Copa \u003cncopa@alpinelinux.org\u003e",
+          "Layer": {
+            "Digest": "sha256:836c50e533d3a1d116717257083d48282ee0b852dc77951066cfa1c6773bca8a",
+            "DiffID": "sha256:7570bf67c987bfdf1ec4787d27b77f2b79c47be04743124e62763d79e6d21350"
+          },
+          "Digest": "sha1:7c6e635f86aafb46cb3b015d8505b3a5f61156bd",
+          "InstalledFiles": [
+            "etc/ssl/cert.pem",
+            "etc/ssl/certs/ca-certificates.crt",
+            "etc/ssl1.1/cert.pem",
+            "etc/ssl1.1/certs"
+          ],
+          "AnalyzedBy": "apk"
+        },
+        {
+          "ID": "libgcc@15.2.0-r5",
+          "Name": "libgcc",
+          "Identifier": {
+            "PURL": "pkg:apk/alpine/libgcc@15.2.0-r5?arch=x86_64\u0026distro=3.24.3",
+            "UID": "a092110f00cd5329"
+          },
+          "Version": "15.2.0-r5",
+          "Arch": "x86_64",
+          "SrcName": "gcc",
+          "SrcVersion": "15.2.0-r5",
+          "Licenses": [
+            "GPL-2.0-or-later",
+            "LGPL-2.1-or-later"
+          ],
+          "Maintainer": "Ariadne Conill \u003cariadne@dereferenced.org\u003e",
+          "DependsOn": [
+            "musl@1.2.6-r3"
+          ],
+          "Layer": {
+            "Digest": "sha256:836c50e533d3a1d116717257083d48282ee0b852dc77951066cfa1c6773bca8a",
+            "DiffID": "sha256:7570bf67c987bfdf1ec4787d27b77f2b79c47be04743124e62763d79e6d21350"
+          },
+          "Digest": "sha1:379c156c53e0cc140e87c79c0a3dd22b6ee51552",
+          "InstalledFiles": [
+            "usr/lib/libgcc_s.so.1"
+          ],
+          "AnalyzedBy": "apk"
+        },
+        {
+          "ID": "libstdc++@15.2.0-r5",
+          "Name": "libstdc++",
+          "Identifier": {
+            "PURL": "pkg:apk/alpine/libstdc%2B%2B@15.2.0-r5?arch=x86_64\u0026distro=3.24.3",
+            "UID": "81829e8deb73ca15"
+          },
+          "Version": "15.2.0-r5",
+          "Arch": "x86_64",
+          "SrcName": "gcc",
+          "SrcVersion": "15.2.0-r5",
+          "Licenses": [
+            "GPL-2.0-or-later",
+            "LGPL-2.1-or-later"
+          ],
+          "Maintainer": "Ariadne Conill \u003cariadne@dereferenced.org\u003e",
+          "DependsOn": [
+            "libgcc@15.2.0-r5",
+            "musl@1.2.6-r3"
+          ],
+          "Layer": {
+            "Digest": "sha256:836c50e533d3a1d116717257083d48282ee0b852dc77951066cfa1c6773bca8a",
+            "DiffID": "sha256:7570bf67c987bfdf1ec4787d27b77f2b79c47be04743124e62763d79e6d21350"
+          },
+          "Digest": "sha1:5f7a2ad7646128ba02cc0d6fb94672b6845648d5",
+          "InstalledFiles": [
+            "usr/lib/libstdc++.so.6",
+            "usr/lib/libstdc++.so.6.0.34"
+          ],
+          "AnalyzedBy": "apk"
+        },
+        {
+          "ID": "musl@1.2.6-r3",
+          "Name": "musl",
+          "Identifier": {
+            "PURL": "pkg:apk/alpine/musl@1.2.6-r3?arch=x86_64\u0026distro=3.24.3",
+            "UID": "43d4b05c5472a58c"
+          },
+          "Version": "1.2.6-r3",
+          "Arch": "x86_64",
+          "SrcName": "musl",
+          "SrcVersion": "1.2.6-r3",
+          "Licenses": [
+            "MIT"
+          ],
+          "Maintainer": "Natanael Copa \u003cncopa@alpinelinux.org\u003e",
+          "Layer": {
+            "Digest": "sha256:836c50e533d3a1d116717257083d48282ee0b852dc77951066cfa1c6773bca8a",
+            "DiffID": "sha256:7570bf67c987bfdf1ec4787d27b77f2b79c47be04743124e62763d79e6d21350"
+          },
+          "Digest": "sha1:770e8304d958dced98d76997df9e8fa1db5ca32f",
+          "InstalledFiles": [
+            "lib/ld-musl-x86_64.so.1",
+            "lib/libc.musl-x86_64.so.1"
+          ],
+          "AnalyzedBy": "apk"
+        }
+      ]
+    },
+    {
+      "Target": "Node.js",
+      "Class": "lang-pkgs",
+      "Type": "node-pkg",
+      "Packages": [
+        {
+          "ID": "signalwire-sms-tester@0.1.6",
+          "Name": "signalwire-sms-tester",
+          "Identifier": {
+            "PURL": "pkg:npm/signalwire-sms-tester@0.1.6",
+            "UID": "bee7a82fce927834"
+          },
+          "Version": "0.1.6",
+          "Licenses": [
+            "MIT"
+          ],
+          "Layer": {
+            "Digest": "sha256:6dc98d316c7579c005c4d7ee059449b3d39f483106a54bc1440d335b75c2fdf5",
+            "DiffID": "sha256:545448b59273276fc44dcae82f815aa1b91ae13585fec7f4837545f570aa8d0b"
+          },
+          "FilePath": "app/package.json",
+          "AnalyzedBy": "node-pkg"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+{"version":"0.1.6","node":"22.23.4","arch":"arm64","uid":1000,"health":true,"authenticatedRead":true,"applicationReadOnlyToRuntime":true,"mountedWrite":true,"httpsCertificateValidation":true,"shellAbsent":true}
+Versioned startup and persistent event log verified; no SMS sends; SIGTERM exit 0

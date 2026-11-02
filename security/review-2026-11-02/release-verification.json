@@ -1,0 +1,22 @@
+{
+  "version": "0.1.6",
+  "source": "17232de1177b8cff40dca945a9d7e2f0bb8f8356",
+  "digest": "sha256:e182e0d6fdc9ddcff9d8b80661d99e7217c723d31b3dfa09fcc3a488dab791b3",
+  "tags": [
+    "0.1.6",
+    "v0.1.6",
+    "latest",
+    "17232de1177b8cff40dca945a9d7e2f0bb8f8356"
+  ],
+  "platforms": [
+    {
+      "architecture": "amd64",
+      "digest": "sha256:0929ec21ef443a7a13221d4aae11e0d018b5d4bed85ec5f64d860e4bc4ddb9d1"
+    },
+    {
+      "architecture": "arm64",
+      "digest": "sha256:b3e2acd348c4bb6c67745f5030eacdc8135c0f92587678357cdb5691530cc483"
+    }
+  ],
+  "sbomAndProvenancePerPlatform": true
+}
