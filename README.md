@@ -2,7 +2,7 @@
 
 A small, dependency-free Node.js service for checking a configured SignalWire
 SMS route. An external monitor starts a test, the service sends one synthetic SMS
-from number A to number B, and B's inbound messaging webhook supplies the actual
+from configured sender A to number B, and B's inbound messaging webhook supplies the actual
 received text. There is no SMS reply, dashboard, voice integration or send scheduler.
 
 ```text
@@ -25,7 +25,7 @@ in the default mode. The API response's status is not callback evidence.
 
 The body is `swsms:v1:<fresh UUID v4>:<random 128-bit lowercase hex nonce>`.
 Inbound and outbound SIDs are separate. Receipt requires the full body after
-outer whitespace trimming, complete E.164 number equality, inbound direction
+outer whitespace trimming, exact sender identity and E.164 destination equality, inbound direction
 when supplied, no media, and server receipt time strictly before the deadline.
 Early callbacks are staged until the API establishes the outbound SID. Duplicate,
 unrelated and late webhooks are acknowledged but cannot rewrite a finished run.
@@ -41,7 +41,7 @@ release line. There are no npm dependencies to install. The container pins the
 keep the runtime and Docker base current ([release schedule](https://nodejs.org/en/about/previous-releases)).
 
 1. Copy `.env.example` to `.env`. Set a strong `API_KEY`, outbound credentials,
-   Signing Key, public HTTPS origin, distinct SMS-enabled A/B numbers and a
+   Signing Key, public HTTPS origin, sender A and an SMS-enabled receiving number B with a
    nonempty destination allowlist. Set B's project/key separately if needed.
 2. Run `npm run check`, `npm test`, then `npm start` (or use Docker below).
    Expose the service through an HTTPS proxy.
@@ -64,7 +64,9 @@ Missing provider/receiver configuration blocks sends with `400` and variable
 names. Missing `API_KEY` disables operational APIs with `503`. Invalid numeric,
 boolean, verification-mode or dotenv syntax prevents startup.
 
-Both numbers must be operator-controlled and SMS-capable on the intended route.
+The sender and destination must be operator-controlled and usable on the intended
+SMS route. Sender A may be an SMS-enabled E.164 number or an alphanumeric sender ID;
+destination B must be an SMS-enabled E.164 number. Numeric A and B must differ.
 Confirm Messaging permissions, destination eligibility and applicable account
 requirements using the provider's [sending guide](https://signalwire.com/docs/compatibility-api/guides/send-sms).
 No numbers or credentials from another repository are needed.
@@ -78,7 +80,7 @@ you intend to reuse. The calling tester's `.env` does **not** work unchanged:
 | --- | --- |
 | `SIGNALWIRE_BASE_URL`, `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_SIGNING_KEY` | Reusable for the same outbound project |
 | `SIGNALWIRE_TOKEN` | Reusable only if its API token has **Messaging** scope; Voice scope alone is insufficient |
-| `SIGNALWIRE_FROM` | Reusable only if this number is also SMS-enabled for the intended route |
+| `SIGNALWIRE_FROM` | SMS-enabled E.164 sender number or alphanumeric sender ID usable on the intended route |
 | `DEFAULT_TO`, `ALLOWED_TO_NUMBERS` | Use distinct receiving **SignalWire SMS** number B; the calling tester's Placetel destination is not this receiver; an empty allowlist blocks sends |
 | `PUBLIC_BASE_URL`, `SIGNALWIRE_STATUS_WEBHOOK_URL` | Point at the SMS deployment; clear an old status override to use the new origin, or set the exact new external status URL |
 | `SIGNALWIRE_VERIFY_WEBHOOKS=auto` | Change to **`on`**; this service accepts only `on`/`off` and never falls back from Signing Key to API token |
@@ -161,7 +163,7 @@ when preceded by whitespace (quote values containing literal comment syntax).
 | `SIGNALWIRE_PROJECT_ID` | Outbound project ID |
 | `SIGNALWIRE_TOKEN` | Outbound API token with Messaging scope |
 | `SIGNALWIRE_SIGNING_KEY` | Outbound project's webhook Signing Key |
-| `SIGNALWIRE_FROM` | Fixed canonical E.164 sender A |
+| `SIGNALWIRE_FROM` | Fixed E.164 sender number or alphanumeric sender ID A |
 | `DEFAULT_TO` | Optional default destination B; otherwise pass `to` |
 | `ALLOWED_TO_NUMBERS` | Required comma-separated complete E.164 allowlist; each must use this receiver webhook/project |
 | `SIGNALWIRE_STATUS_WEBHOOK_URL` | Blank: origin + `/webhooks/signalwire/status`; exact external override otherwise |
@@ -176,9 +178,23 @@ when preceded by whitespace (quote values containing literal comment syntax).
 | `MIN_SEND_INTERVAL_MS` | `60000`; positive integer shared by tests, checks and raw sends |
 | `DATA_DIR` | Repository-root `./data`; `/app/data` in Docker |
 
-Complete canonical numbers such as `+12025550101` are required. Spaces, country
-guessing, suffix matching, A-to-A sends and destinations outside the allowlist
-are rejected. Provider URLs must be HTTP(S), without embedded credentials or
+Destinations require complete canonical numbers such as `+12025550101`. Phone
+numbers with spaces, country guessing, suffix matching, A-to-A sends and
+destinations outside the allowlist are rejected. `SIGNALWIRE_FROM` additionally
+accepts alphanumeric IDs: 1–11 ASCII letters, digits and internal spaces, with
+at least one letter. For example:
+
+```dotenv
+SIGNALWIRE_FROM=MyBrand
+```
+
+The configured sender is sent unchanged and matched exactly, including case, in
+both status and inbound callbacks. Alphanumeric IDs are never allowed as `to`
+or allowlist entries. Provider/route acceptance of an ID is separate from this
+service's format validation; a rejected send or rewritten sender cannot produce
+a pass. No live alphanumeric route has been verified by the automated checks.
+
+Provider URLs must be HTTP(S), without embedded credentials or
 fragments; use HTTPS in deployment. HTTP support is for isolated local development.
 
 ## HTTP API
@@ -277,16 +293,16 @@ Do not configure multiple monitors/replicas to compete for the same run slot.
 
 The container repository is
 [`schumann/signalwire-sms-tester`](https://hub.docker.com/r/schumann/signalwire-sms-tester).
-The current patch release is `0.1.1`, with tags `0.1.1`, `v0.1.1`, `latest` and a
+The current patch release is `0.1.2`, with tags `0.1.2`, `v0.1.2`, `latest` and a
 full commit-SHA alias. Releases target Linux AMD64 and ARM64. Use the version tag
 for a fixed deployment; `latest` advances only for tagged releases.
 
 ```sh
-docker pull schumann/signalwire-sms-tester:0.1.1
+docker pull schumann/signalwire-sms-tester:0.1.2
 docker run -d --name signalwire-sms-tester --restart unless-stopped \
   -p 127.0.0.1:3001:3000 --env-file .env \
   -v signalwire-sms-tester-data:/app/data \
-  schumann/signalwire-sms-tester:0.1.1
+  schumann/signalwire-sms-tester:0.1.2
 ```
 
 The port above assumes an HTTPS proxy on the Docker host. Local source builds:

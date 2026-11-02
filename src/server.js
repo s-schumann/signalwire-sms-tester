@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { loadConfig, sendConfigurationErrors, webhookConfigurationErrors, isE164, isSid, MAX_BODY_BYTES, MAX_MESSAGE_CHARS, MAX_TIMEOUT_MS } from './config.js';
+import { loadConfig, sendConfigurationErrors, webhookConfigurationErrors, isE164, isSmsSender, isSid, MAX_BODY_BYTES, MAX_MESSAGE_CHARS, MAX_TIMEOUT_MS } from './config.js';
 import { HttpError } from './errors.js';
 import { createMessage } from './signalwire.js';
 import { parseForm, parseJsonWebhook, verifyForm, safeEqual, signedWebhookUrl, statusCallbackUrl } from './signature.js';
@@ -156,7 +156,7 @@ export function createApp(config, store, { fetch = globalThis.fetch, now = Date.
         if (!form.AccountSid) throw new HttpError(400, 'Webhook requires AccountSid');
         if (form.AccountSid !== (inbound ? config.inboundProjectId : config.projectId)) throw new HttpError(403, 'Unexpected webhook project');
         const sid = alias(form, 'MessageSid', 'SmsSid');
-        if (!isSid(sid) || !isE164(form.From) || !isE164(form.To)) throw new HttpError(400, 'Webhook requires valid message SID, From and To');
+        if (!isSid(sid) || !isSmsSender(form.From) || !isE164(form.To)) throw new HttpError(400, 'Webhook requires valid message SID, sender From and E.164 destination To');
         if (inbound) {
           if (typeof form.Body !== 'string') throw new HttpError(400, 'Inbound webhook requires Body');
           if (form.NumMedia !== undefined && !/^\d+$/.test(form.NumMedia)) throw new HttpError(400, 'Invalid NumMedia');

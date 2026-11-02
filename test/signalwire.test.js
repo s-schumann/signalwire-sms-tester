@@ -23,6 +23,15 @@ test('Compatibility Messages URL, Basic authentication, form encoding, redirect 
   assert.deepEqual(result, { sid: 'outbound-1' });
 });
 
+test('alphanumeric sender is form-encoded without changing its case or spaces', async () => {
+  const alphaConfig = createConfig({ ...ENV, SIGNALWIRE_FROM: 'My Brand2' });
+  await createMessage(alphaConfig, options(), { fetch: async (_, init) => {
+    assert.equal(new URLSearchParams(init.body).get('From'), 'My Brand2');
+    assert.match(init.body, /From=My\+Brand2/);
+    return providerResponse();
+  } });
+});
+
 test('safe upstream failures and ambiguous transport outcomes never retry', async () => {
   const cases = [
     [() => new Response('password=provider-secret', { status: 401 }), 502, false],

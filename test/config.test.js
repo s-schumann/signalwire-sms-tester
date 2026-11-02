@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createConfig, loadDotEnv, sendConfigurationErrors, webhookConfigurationErrors, isE164 } from '../src/config.js';
+import { createConfig, loadDotEnv, sendConfigurationErrors, webhookConfigurationErrors, isE164, isAlphanumericSenderId, isSmsSender } from '../src/config.js';
 import { ENV } from '../test-support/helpers.js';
 
 test('dotenv supports blank, quoted, comments and existing environment without exposing values', async t => {
@@ -29,6 +29,22 @@ test('configuration defaults, caps and strict values', () => {
     assert.throws(() => createConfig({ ...ENV, [name]: value }), new RegExp(name));
   }
   for (const value of ['2025550100', '+1 2025550100', ' +12025550100', '+01234567', '+1234567890123456']) assert.equal(isE164(value), false);
+});
+
+test('sender may be E.164 or a short alphanumeric ID; destinations remain E.164', () => {
+  for (const from of ['A', 'Brand123', 'MixedCase', 'My Brand2', 'Brand123456']) {
+    assert.equal(isAlphanumericSenderId(from), true, from);
+    assert.equal(isSmsSender(from), true, from);
+    assert.deepEqual(sendConfigurationErrors(createConfig({ ...ENV, SIGNALWIRE_FROM: from })), []);
+  }
+  assert.equal(isSmsSender(ENV.SIGNALWIRE_FROM), true);
+  for (const from of ['', '1234567890', 'Brand1234567', 'Brand-1', 'Brand_1', '+Brand', 'Älpha', ' Brand', 'Brand ', 'Brand\n', 'Brand\t', null, 123]) {
+    assert.equal(isAlphanumericSenderId(from), false, String(from));
+    assert.equal(isSmsSender(from), false, String(from));
+  }
+  for (const from of ['1234567890', 'Brand1234567', 'Brand-1']) assert.ok(sendConfigurationErrors(createConfig({ ...ENV, SIGNALWIRE_FROM: from })).includes('SIGNALWIRE_FROM'));
+  assert.ok(sendConfigurationErrors(createConfig({ ...ENV, DEFAULT_TO: 'Brand123' })).includes('DEFAULT_TO'));
+  assert.ok(sendConfigurationErrors(createConfig({ ...ENV, ALLOWED_TO_NUMBERS: 'Brand123' })).includes('ALLOWED_TO_NUMBERS'));
 });
 
 test('separate receiver project needs its signing key, explicit URLs keep verification enabled', () => {

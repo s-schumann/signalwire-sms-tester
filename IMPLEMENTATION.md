@@ -2,7 +2,7 @@
 
 The service described by `HANDOVER.md` is implemented as an independent Node.js
 ES module project, initially version **0.1.0**, followed by the **0.1.1** JSON
-compatibility patch. The original handover remains the brief;
+compatibility and **0.1.2** alphanumeric sender patches. The original handover remains the brief;
 `README.md` describes the delivered behavior and operator setup.
 
 ## Delivered
@@ -158,3 +158,18 @@ keep the user's explicit `SIGNALWIRE_VERIFY_WEBHOOKS=off`, then start a fresh
 round-trip check so the received SMS contains its generated correlation body.
 JSON signing remains deferred. The Git remote is still unset; no source push,
 provider resource change or live SMS send was performed by this patch release.
+
+## Alphanumeric sender patch — 0.1.2
+
+The user requested alphanumeric `SIGNALWIRE_FROM` support. Configuration and
+both webhook routes now accept an E.164 phone sender or a 1–11 character ASCII
+sender ID containing letters, digits and internal spaces, with at least one
+letter. Sending preserves the exact configured ID; inbound/status correlation
+remains case-sensitive and exact. `to`, `DEFAULT_TO` and allowlist entries stay
+strict E.164, and callers still cannot override the configured sender.
+
+Syntax checks and all **49** mocked tests passed locally on Node 24.22.2,
+including signed form and verification-off JSON flows using an alphanumeric
+sender. Wrong case, prefixes and alternate numeric senders cannot satisfy
+receipt evidence. Existing JSON verification-off behavior is retained; JSON
+signing remains deferred as requested. No live sender-ID route has been tested.

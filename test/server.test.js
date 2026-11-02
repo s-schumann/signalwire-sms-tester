@@ -49,6 +49,49 @@ test('generated SMS, signed callbacks, empty cXML and exact evidence produce a p
   assert.deepEqual(new Set(messages.messages.map(m => m.direction)), new Set(['inbound', 'outbound']));
 });
 
+test('alphanumeric sender works end to end for signed form and verification-off JSON callbacks', async t => {
+  for (const format of ['form', 'json']) {
+    const from = 'My Brand2';
+    let sent;
+    const h = await setup(t, { server: true,
+      env: { SIGNALWIRE_FROM: from, SIGNALWIRE_VERIFY_WEBHOOKS: format === 'json' ? 'off' : 'on' },
+      fetch: async (_, init) => { sent = new URLSearchParams(init.body); return providerResponse(); },
+    });
+    const response = await h.post('/tests');
+    assert.equal(response.status, 201);
+    const run = (await response.json()).test;
+    assert.equal(run.request.from, from);
+    assert.equal(sent.get('From'), from);
+    const deliver = (kind, payload, query = '') => format === 'form'
+      ? h.webhook(kind, payload, { query })
+      : h.post(`/webhooks/signalwire/${kind}${query}`, payload, { headers: { authorization: '' } });
+    const query = `?test_id=${run.id}`;
+    await deliver('status', statusForm({ From: 'MY BRAND2' }), query);
+    assert.equal(h.store.get(run.id).expected.signalWireStatus, false);
+    await deliver('status', statusForm({ From: from }), query);
+    for (const [index, wrongFrom] of ['MY BRAND2', 'XMy Brand2', '+12025550999'].entries()) {
+      const receipt = await deliver('inbound', inboundForm(run, { From: wrongFrom, MessageSid: `wrong-sender-${index}` }));
+      assert.equal(receipt.status, 200);
+      assert.equal(h.store.get(run.id).expected.inboundSmsMatched, false);
+    }
+    const receipt = await deliver('inbound', inboundForm(run, { From: from }));
+    assert.equal(receipt.status, 200);
+    assert.equal(await receipt.text(), '<?xml version="1.0" encoding="UTF-8"?><Response/>');
+    assert.equal(h.store.get(run.id).ok, true);
+    assert.deepEqual(h.store.get(run.id).missing, []);
+  }
+});
+
+test('alphanumeric senders do not allow caller sender overrides or alphanumeric destinations', async t => {
+  const h = await setup(t, { server: true, env: { SIGNALWIRE_FROM: 'MyBrand' }, fetch: async () => assert.fail('must not send') });
+  assert.equal((await h.post('/tests', { from: 'Another' })).status, 400);
+  assert.equal((await h.post('/tests', { to: 'OtherBrand' })).status, 400);
+  assert.equal((await h.post('/messages', { to: 'OtherBrand', body: 'Test' })).status, 400);
+  assert.equal((await h.request('/checks/round-trip?to=OtherBrand')).status, 400);
+  assert.equal((await h.webhook('inbound', inboundForm({ body: 'Test' }, { From: 'MyBrand', To: 'OtherBrand' }))).status, 400);
+  assert.equal(h.store.list().length, 0);
+});
+
 test('input validation and override attempts issue no provider request', async t => {
   let calls = 0;
   const h = await setup(t, { server: true, fetch: async () => { calls++; return providerResponse(); } });

@@ -3,6 +3,15 @@
 Changes follow Semantic Versioning. The 0.x interface is unstable; minor
 versions may introduce breaking changes.
 
+## 0.1.2 — 2026-11-02
+
+- Allow `SIGNALWIRE_FROM` to be an E.164 number or alphanumeric sender ID of
+  1–11 ASCII letters/digits/internal spaces, including at least one letter.
+- Accept alphanumeric `From` in status/inbound callbacks and preserve exact,
+  case-sensitive sender correlation. Destinations and allowlists remain E.164.
+- Add four regression tests for configuration boundaries, outbound form encoding,
+  full signed-form/unsigned-JSON correlation and destination/override restrictions.
+
 ## 0.1.1 — 2026-11-02
 
 - Accept flat JSON Compatibility callbacks at both webhook endpoints when

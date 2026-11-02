@@ -7,6 +7,9 @@ export const MAX_TIMEOUT_MS = 600_000;
 export const MAX_BODY_BYTES = 256 * 1024;
 export const MAX_MESSAGE_CHARS = 1600;
 export const isE164 = value => typeof value === 'string' && /^\+[1-9]\d{1,14}$/.test(value);
+export const isAlphanumericSenderId = value => typeof value === 'string' && value.length >= 1 && value.length <= 11 &&
+  /[A-Za-z]/.test(value) && !/[^A-Za-z0-9 ]/.test(value) && value === value.trim();
+export const isSmsSender = value => isE164(value) || isAlphanumericSenderId(value);
 export const isSid = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
 
 // Intentionally small dotenv grammar: single-line values, quotes, and comments.
@@ -102,7 +105,7 @@ export function sendConfigurationErrors(config) {
   if (!validHttpUrl(config.publicBaseUrl, { originOnly: true })) errors.push('PUBLIC_BASE_URL');
   if (!isSid(config.projectId)) errors.push('SIGNALWIRE_PROJECT_ID');
   if (!config.token) errors.push('SIGNALWIRE_TOKEN');
-  if (!isE164(config.from)) errors.push('SIGNALWIRE_FROM');
+  if (!isSmsSender(config.from)) errors.push('SIGNALWIRE_FROM');
   if (!config.allowedTo.length || config.allowedTo.some(n => !isE164(n) || n === config.from)) errors.push('ALLOWED_TO_NUMBERS');
   if (config.defaultTo && (!isE164(config.defaultTo) || !config.allowedTo.includes(config.defaultTo) || config.defaultTo === config.from)) errors.push('DEFAULT_TO');
   for (const [key, value] of [['SIGNALWIRE_STATUS_WEBHOOK_URL', config.statusWebhookUrl], ['SIGNALWIRE_INBOUND_WEBHOOK_URL', config.inboundWebhookUrl]]) {
