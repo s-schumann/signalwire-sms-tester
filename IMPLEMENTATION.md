@@ -93,3 +93,27 @@ container does not push the Git source. No provider provisioning, live SMS sends
 or phone-number changes are part of publication. Calling-project compatibility
 was checked against its template/source, without reading or copying its live
 `.env`; the exact migration differences are now in `README.md`.
+
+## Publication verified
+
+Published to Docker Hub on 2026-11-02:
+
+- Repository: `schumann/signalwire-sms-tester`
+- Release source commit: `a808039ca3e878ff2c70a63ff663365b319fd573`
+- Local Git release tag: `v0.1.0`
+- Image aliases: `0.1.0`, `v0.1.0`, `latest`, and the full source commit SHA
+- Shared image index digest:
+  `sha256:9fca65b0e1e955939653a5958a84890cc7c60790fb7099acacc74b82544dde9f`
+- Platforms: `linux/amd64` and `linux/arm64`
+- Both architecture attestations contain SBOM and provenance; publication used
+  `--provenance=mode=max --sbom=true` in one Buildx invocation for all aliases.
+
+Registry inspection confirmed that all four aliases resolve to the same index.
+The actual published ARM64 image and AMD64 image were pulled by immutable digest
+and both passed the container smoke script (AMD64 under local emulation).
+Both run Node 22.23.4 and retain the tested non-root, HTTPS, liveness,
+authenticated read, mounted log persistence and clean shutdown behavior.
+
+The release evidence above is a post-publication documentation update; the
+immutable release tag and image continue to identify source commit `a808039`.
+No Git source was pushed and no live SMS was sent.
