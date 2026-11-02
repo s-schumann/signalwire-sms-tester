@@ -3,6 +3,17 @@
 Changes follow Semantic Versioning. The 0.x interface is unstable; minor
 versions may introduce breaking changes.
 
+## 0.1.5 — 2026-11-02
+
+- Add server-only `IGNORE_SENDER_FROM=false`; opting in ignores inbound sender
+  presence, syntax and equality, including discarded JSON `From` values.
+- Preserve outbound sender/status correlation and every other inbound receipt
+  requirement. Expose the effective flag in startup, configuration and test data.
+- Omit ignored sender payloads from summaries/logs; identify ignored matching in
+  `inbound_matched`, and report invalid SID, To and From errors separately.
+- Document the full matching contract and cover rewritten/missing senders,
+  signatures, held checks, deadline/dedup rules and false-pass prevention.
+
 ## 0.1.4 — 2026-11-02
 
 - Accept the requested sender grammar: E.164 or 1–11 ASCII letters/digits and

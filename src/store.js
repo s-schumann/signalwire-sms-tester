@@ -47,7 +47,7 @@ export class Store extends EventEmitter {
     const record = {
       id, status: 'starting', ok: false, reason: '',
       expected: { signalWireMessageCreated: false, signalWireStatus: false, inboundSmsMatched: false, ...(this.config.requireDeliveredStatus ? { signalWireDelivered: false } : {}) },
-      missing: [], request: { from: this.config.from, to, timeoutMs, requireDeliveredStatus: this.config.requireDeliveredStatus },
+      missing: [], request: { from: this.config.from, to, timeoutMs, requireDeliveredStatus: this.config.requireDeliveredStatus, ignoreSenderFrom: this.config.ignoreSenderFrom },
       body: `swsms:v1:${id}:${randomBytes(16).toString('hex')}`,
       outboundMessageSid: null, inboundMessageSid: null,
       createdAt: iso(created), timeoutAt: iso(created + timeoutMs), updatedAt: iso(created), finishedAt: null,
@@ -177,12 +177,15 @@ export class Store extends EventEmitter {
     const match = body.trim().match(BODY_PATTERN);
     const row = match ? this.tests.get(match[1]) : null;
     const valid = row && !terminal(row.record) && projectId === this.config.inboundProjectId &&
-      body.trim() === row.record.body && from === row.record.request.from && to === row.record.request.to &&
+      body.trim() === row.record.body && (row.record.request.ignoreSenderFrom || from === row.record.request.from) && to === row.record.request.to &&
       (!direction || direction === 'inbound') && !hasMedia && received >= row.created && received < row.deadline;
-    const summary = { projectId, sid, inboundMessageSid: sid, direction: 'inbound', from, to, createdAt: iso(received), matched: Boolean(valid), ...(valid ? { testId: row.record.id } : {}) };
+    // Ignored sender data is unvalidated and may be arbitrarily large. Never
+    // retain it in bounded summaries or write it to event logs.
+    const senderSummary = this.config.ignoreSenderFrom ? { senderFromIgnored: true } : { from };
+    const summary = { projectId, sid, inboundMessageSid: sid, direction: 'inbound', ...senderSummary, to, createdAt: iso(received), matched: Boolean(valid), ...(valid ? { testId: row.record.id } : {}) };
     this.message(summary);
     if (!valid) {
-      this.recordEvent(null, 'inbound_unmatched', { projectId, inboundMessageSid: sid, direction: 'inbound', from, to, reason: 'Unrelated, invalid, expired or finished receipt' });
+      this.recordEvent(null, 'inbound_unmatched', { projectId, inboundMessageSid: sid, direction: 'inbound', ...senderSummary, to, reason: 'Unrelated, invalid, expired or finished receipt' });
       return;
     }
     if (row.record.expected.inboundSmsMatched) {
@@ -192,6 +195,7 @@ export class Store extends EventEmitter {
     Object.assign(row.record, { inboundMessageSid: sid, inboundReceivedAt: iso(received), inboundLatencyMs: received - row.created });
     row.record.expected.inboundSmsMatched = true;
     this.recordEvent(row, 'inbound_matched', { direction: 'inbound', inboundMessageSid: sid, durationMs: received - row.created,
+      senderFromIgnored: row.record.request.ignoreSenderFrom,
       missing: Object.keys(row.record.expected).filter(key => !row.record.expected[key]),
     });
     this.evaluate(row);

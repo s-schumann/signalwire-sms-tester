@@ -82,7 +82,70 @@ test('sender-ID symbols work end to end for signed form and verification-off JSO
   }
 });
 
-test('alphanumeric senders do not allow caller sender overrides or alphanumeric destinations', async t => {
+test('inbound-only sender opt-out completes a held check with rewritten From while preserving validation and status matching', async t => {
+  for (const format of ['form', 'json']) {
+    const sent = deferred();
+    const h = await setup(t, { server: true,
+      env: { IGNORE_SENDER_FROM: 'true', SIGNALWIRE_VERIFY_WEBHOOKS: format === 'form' ? 'on' : 'off' },
+      fetch: async (_, init) => { sent.resolve(new URL(new URLSearchParams(init.body).get('StatusCallback'))); return providerResponse(); },
+    });
+    const waiting = h.request('/checks/round-trip?timeoutMs=1000&waitTimeoutMs=1000');
+    const callback = await sent.promise;
+    const id = callback.searchParams.get('test_id');
+    await Promise.all([...h.app.operations]);
+    const run = h.store.get(id);
+    const deliver = (kind, payload, options = {}) => format === 'form'
+      ? h.webhook(kind, payload, options)
+      : h.post(`/webhooks/signalwire/${kind}${options.query || ''}`, payload, { headers: { authorization: '' } });
+    assert.equal((await (await h.request('/')).json()).configuration.ignoreSenderFrom, true);
+    assert.equal(run.request.ignoreSenderFrom, true);
+    assert.equal((await deliver('status', statusForm({ From: '+12025550999' }), { query: callback.search })).status, 200);
+    assert.equal(h.store.get(id).expected.signalWireStatus, false);
+    const rejectedStatus = await deliver('status', statusForm({ From: 'rewritten sender' }), { query: callback.search });
+    assert.equal(rejectedStatus.status, 400);
+    assert.match((await rejectedStatus.json()).reason, /sender From/);
+    assert.equal((await deliver('status', statusForm(), { query: callback.search })).status, 200);
+    const payload = inboundForm(run, { From: 'private ignored sender / '.repeat(1000), Body: ` \n${run.body}\r\n ` });
+    for (const [overrides, reason] of [[{ To: '00491234567890' }, /destination To/], [{ MessageSid: 'bad sid' }, /message SID/]]) {
+      const rejected = await deliver('inbound', { ...payload, ...overrides });
+      assert.equal(rejected.status, 400);
+      assert.match((await rejected.json()).reason, reason);
+    }
+    assert.equal((await deliver('inbound', { ...payload, AccountSid: 'wrong-project' })).status, 403);
+    if (format === 'form') {
+      assert.equal((await h.webhook('inbound', payload, { signature: 'invalid' })).status, 403);
+      assert.equal((await h.post('/webhooks/signalwire/inbound', payload, { headers: { authorization: '' } })).status, 415);
+    }
+    assert.deepEqual(h.store.get(id).missing, ['inboundSmsMatched']);
+    const receipt = await deliver('inbound', payload);
+    assert.equal(receipt.status, 200);
+    assert.equal(await receipt.text(), '<?xml version="1.0" encoding="UTF-8"?><Response/>');
+    const response = await waiting;
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).ok, true);
+    assert.equal(h.store.listenerCount(id), 0);
+    assert.equal(h.logger.recent().find(event => event.type === 'inbound_matched').senderFromIgnored, true);
+    const summaries = await (await h.request('/messages')).json();
+    assert.equal(summaries.messages.find(message => message.direction === 'inbound').senderFromIgnored, true);
+    assert.equal(JSON.stringify([summaries, h.logger.recent()]).includes('private ignored sender'), false);
+  }
+});
+
+test('sender opt-out accepts missing inbound form From and discards any JSON From value', async t => {
+  for (const [format, from] of [['form', undefined], ['json', undefined], ['json', null], ['json', 491234567890], ['json', { rewritten: true }]]) {
+    const h = await setup(t, { server: true, env: { IGNORE_SENDER_FROM: 'true', SIGNALWIRE_VERIFY_WEBHOOKS: format === 'form' ? 'on' : 'off' } });
+    const run = (await (await h.post('/tests')).json()).test;
+    await h.webhook('status', statusForm(), { query: `?test_id=${run.id}` });
+    const payload = inboundForm(run, { From: from });
+    if (from === undefined) delete payload.From;
+    const receipt = format === 'form' ? await h.webhook('inbound', payload)
+      : await h.post('/webhooks/signalwire/inbound', payload, { headers: { authorization: '' } });
+    assert.equal(receipt.status, 200);
+    assert.equal(h.store.get(run.id).ok, true);
+  }
+});
+
+test('sender IDs do not allow caller sender overrides or non-E.164 destinations', async t => {
   const h = await setup(t, { server: true, env: { SIGNALWIRE_FROM: 'MyBrand' }, fetch: async () => assert.fail('must not send') });
   assert.equal((await h.post('/tests', { from: 'Another' })).status, 400);
   assert.equal((await h.post('/tests', { to: 'OtherBrand' })).status, 400);
@@ -97,6 +160,10 @@ test('input validation and override attempts issue no provider request', async t
   const h = await setup(t, { server: true, fetch: async () => { calls++; return providerResponse(); } });
   for (const [input, status] of [[null, 400], [[], 400], [{ body: 'override' }, 400], [{ from: A }, 400], [{ token: 'override' }, 400], [{ callbackUrl: 'https://bad.test' }, 400], [{ baseUrl: 'https://bad.test' }, 400], [{ requireDeliveredStatus: false }, 400], [{ timeoutMs: '10' }, 400], [{ timeoutMs: 0 }, 400], [{ timeoutMs: 1.5 }, 400], [{ timeoutMs: null }, 400], [{ to: 12025550101 }, 400], [{ to: '+1 2025550101' }, 400], [{ to: '+12025550999' }, 403], [{ to: A }, 403]]) assert.equal((await h.post('/tests', input)).status, status, JSON.stringify(input));
   for (const path of ['/checks/round-trip?timeoutMs=Infinity', '/checks/round-trip?timeoutMs=1&timeoutMs=2', '/checks/round-trip?waitTimeoutMs=0', '/checks/round-trip?to=+12025550101', '/checks/round-trip?body=override', '/events?limit=-1', '/events?limit=1&limit=2']) assert.equal((await h.request(path)).status, 400, path);
+  for (const field of ['ignoreSenderFrom', 'ignore_sender_from', 'IGNORE_SENDER_FROM']) {
+    assert.equal((await h.post('/tests', { [field]: true })).status, 400);
+    assert.equal((await h.request(`/checks/round-trip?${field}=true`)).status, 400);
+  }
   assert.equal((await h.post('/tests', {}, { body: '{invalid' })).status, 400);
   assert.equal((await h.post('/tests', {}, { headers: { 'content-type': 'text/plain' } })).status, 415);
   assert.equal((await h.post('/tests', {}, { body: 'x'.repeat(256 * 1024 + 1) })).status, 413);

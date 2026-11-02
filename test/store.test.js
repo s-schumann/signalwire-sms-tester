@@ -65,6 +65,49 @@ test('delivery-optional mode accepts each successful outbound progress state plu
   }
 });
 
+test('ignoring inbound sender preserves body, To, project, direction, media, SID dedup and outbound sender checks', async t => {
+  const { store, logger } = await setup(t, { env: { IGNORE_SENDER_FROM: 'true' } });
+  const run = store.createTest(B, 1000);
+  assert.equal(run.request.ignoreSenderFrom, true);
+  store.markCreated(run.id, 'outbound-1');
+  const rewritten = 'untrusted rewritten sender '.repeat(1000);
+  const invalid = [
+    { body: 'Test' }, { body: `prefix ${run.body}` }, { body: `${run.body} suffix` },
+    { body: run.body.replace('v1', 'v2') }, { body: run.body.slice(0, -1) },
+    { body: run.body.replace(/.$/, run.body.endsWith('a') ? 'b' : 'a') },
+    { to: '+12025550999' }, { to: undefined }, { projectId: 'other-project' },
+    { direction: 'outbound-api' }, { hasMedia: true },
+  ];
+  invalid.forEach((overrides, index) => store.receiveInbound(inboundEvent(run, { sid: `invalid-${index}`, from: rewritten, ...overrides })));
+  // Reusing a previously seen SID cannot turn an unmatched receipt into a pass.
+  store.receiveInbound(inboundEvent(run, { sid: 'invalid-0', from: undefined }));
+  assert.equal(store.get(run.id).expected.inboundSmsMatched, false);
+  store.receiveStatus(statusEvent(run, { from: '+12025550999' }));
+  assert.equal(store.get(run.id).expected.signalWireStatus, false);
+  store.receiveInbound(inboundEvent(run, { from: rewritten }));
+  assert.deepEqual(store.get(run.id).missing, ['signalWireStatus']);
+  store.receiveStatus(statusEvent(run));
+  assert.equal(store.get(run.id).ok, true);
+  assert.equal(logger.recent().find(event => event.type === 'inbound_matched').senderFromIgnored, true);
+  assert.equal(JSON.stringify([store.listMessages(), logger.recent()]).includes('untrusted rewritten'), false);
+  const frozen = store.get(run.id);
+  store.receiveInbound(inboundEvent(run, { sid: 'late-inbound', from: undefined }));
+  assert.deepEqual(store.get(run.id), frozen);
+});
+
+test('ignoring inbound sender accepts missing From but cannot accept receipt at the deadline', async t => {
+  for (const late of [false, true]) {
+    const { store, advance } = await setup(t, { env: { IGNORE_SENDER_FROM: 'true' } });
+    const run = store.createTest(B, 1000);
+    store.markCreated(run.id, 'outbound-1');
+    store.receiveStatus(statusEvent(run));
+    if (late) advance(1000);
+    store.receiveInbound(inboundEvent(run, { from: undefined }));
+    assert.equal(store.get(run.id).ok, !late);
+    assert.equal(store.get(run.id).expected.inboundSmsMatched, !late);
+  }
+});
+
 test('strict delivery mode waits for delivered; inbound alone misses callback evidence', async t => {
   const { store } = await setup(t, { env: { REQUIRE_DELIVERED_STATUS: 'true' } });
   const run = store.createTest(B, 1000);

@@ -10,13 +10,16 @@ export function parseForm(text) {
   return form;
 }
 
-export function parseJsonWebhook(text) {
+export function parseJsonWebhook(text, { ignoreSenderFrom = false } = {}) {
   let payload;
   try { payload = JSON.parse(text); }
   catch { throw new HttpError(400, 'Invalid webhook JSON'); }
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new HttpError(400, 'Webhook JSON must be an object');
   const form = Object.create(null);
   for (const [key, value] of Object.entries(payload)) {
+    // Only inbound, verification-off JSON can opt out. Signed forms keep every
+    // original field for signature verification even when matching ignores From.
+    if (ignoreSenderFrom && key === 'From') continue;
     if (typeof value === 'string') form[key] = value;
     else if (value === null && ['ErrorCode', 'ErrorMessage'].includes(key)) form[key] = '';
     else if (['NumMedia', 'NumSegments', 'ErrorCode'].includes(key) && Number.isSafeInteger(value) && value >= 0) form[key] = String(value);

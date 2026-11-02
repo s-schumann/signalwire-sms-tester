@@ -288,3 +288,28 @@ The **0.1.4** patch is published and verified:
 Redeploy `schumann/signalwire-sms-tester:0.1.4` in CapRover; the next
 `service_started` line identifies the release. No CapRover/provider setting was
 changed, no Git source was pushed and no live SMS was sent by the release checks.
+
+## Inbound sender opt-out — 0.1.5
+
+The user reported a rejected inbound callback and confirmed that sender-ignore
+behavior must apply only to inbound matching. `IGNORE_SENDER_FROM` defaults to
+`false`; `true` skips inbound `From` presence, syntax and equality checks. JSON
+discards that field before normalization; signed forms preserve it for complete
+signature verification. Ignored sender data is never retained in message
+summaries or logs. The effective flag is exposed in configuration, startup and
+each test; `inbound_matched` records `senderFromIgnored`.
+
+The exact generated body (UUID plus nonce), receiving To, inbound project,
+signature when enabled, valid SID/deduplication, direction/media rules, deadline
+and active-state requirements remain mandatory. The outbound configured sender
+and status matching are unchanged, and a pass still needs API creation plus a
+recognized status callback (and delivered only when separately configured).
+The README now contains the full inbound matching table and outbound criteria.
+Validation errors distinguish invalid SID, To and From without logging payloads.
+
+Syntax checks and all **59** mocked tests pass on local Node 24.22.2, covering
+signed-form/JSON held checks, missing/rewritten sender forms, field validation,
+signature preservation, unchanged outbound matching, deadlines, deduplication,
+terminal immutability, secret-free bounded summaries and per-request override
+rejection. No live `.env`, provider request or SMS was used. Browser access
+remains stopped; publication uses the previously authorized container repository.

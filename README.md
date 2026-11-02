@@ -16,7 +16,8 @@ A pass requires all of these before the deadline:
 
 - Successful message creation with an outbound SID.
 - An authenticated, matching outbound status callback in a recognized state.
-- An authenticated inbound webhook containing the exact generated text and A/B.
+- An inbound webhook containing the exact generated text and receiving number B,
+  passing the checks below. Sender A must match unless `IGNORE_SENDER_FROM=true`.
 - A `delivered` callback when `REQUIRE_DELIVERED_STATUS=true`.
 
 `failed` and `undelivered` fail immediately once their outbound SID is confirmed.
@@ -25,8 +26,10 @@ in the default mode. The API response's status is not callback evidence.
 
 The body is `swsms:v1:<fresh UUID v4>:<random 128-bit lowercase hex nonce>`.
 Inbound and outbound SIDs are separate. Receipt requires the full body after
-outer whitespace trimming, exact sender identity and E.164 destination equality, inbound direction
-when supplied, no media, and server receipt time strictly before the deadline.
+outer whitespace trimming, E.164 destination equality, inbound direction when
+supplied, no media, and server receipt time strictly before the deadline.
+Sender identity is checked by default; `IGNORE_SENDER_FROM=true` permits a
+rewritten or missing inbound sender without changing outbound status matching.
 Early callbacks are staged until the API establishes the outbound SID. Duplicate,
 unrelated and late webhooks are acknowledged but cannot rewrite a finished run.
 
@@ -139,6 +142,10 @@ fields (`MessageSid`/`SmsSid`, `AccountSid`, `From`, `To`, `Body`, status fields
 etc.). `NumMedia`, `NumSegments` and `ErrorCode` may also be nonnegative integers.
 Optional `ErrorCode` and `ErrorMessage` may be `null`; these normalize to empty
 error metadata. Required correlation fields must still have valid types.
+When `IGNORE_SENDER_FROM=true`, inbound JSON `From` is discarded before field
+validation, including missing/null/non-string values. All other JSON fields
+retain their normal validation. Signed forms retain every field, including
+ignored `From`, for signature verification.
 The inbound response remains empty cXML. Account, number, body, media and deadline
 checks still apply. JSON signature verification is deferred: with verification
 `on`, JSON callbacks return `415`; signed form callbacks continue to work.
@@ -176,6 +183,7 @@ when preceded by whitespace (quote values containing literal comment syntax).
 | `TEST_TIMEOUT_MS` | `120000`; positive integer, capped at `600000` |
 | `SIGNALWIRE_REQUEST_TIMEOUT_MS` | `10000`; positive integer, capped at `600000` and remaining test time |
 | `REQUIRE_DELIVERED_STATUS` | `false`: creation + recognized outbound status callback + exact inbound receipt; `true`: also require a matching `delivered` callback; cannot be weakened per request |
+| `IGNORE_SENDER_FROM` | `false`; `true` ignores inbound `From` only (presence, format and equality); outbound status sender matching remains strict; cannot be changed per request |
 | `MAX_ACTIVE_TESTS` | `1`; positive integer, capped at `100` |
 | `MIN_SEND_INTERVAL_MS` | `60000`; positive integer shared by tests, checks and raw sends |
 | `DATA_DIR` | Repository-root `./data`; `/app/data` in Docker |
@@ -198,10 +206,53 @@ SIGNALWIRE_FROM=My-Brand
 ```
 
 The configured sender is sent unchanged and matched exactly, including case, in
-both status and inbound callbacks. Destinations and allowlist entries must still
+status callbacks and, by default, inbound callbacks. `IGNORE_SENDER_FROM=true`
+skips inbound sender validation and equality. Destinations and allowlist entries must still
 be canonical E.164 numbers. Provider/route acceptance of an ID is separate from this
 service's format validation; a rejected send or rewritten sender cannot produce
-a pass. No live sender-ID route has been verified by the automated checks.
+a pass unless only inbound sender rewriting is tolerated using the opt-out.
+No live sender-ID route has been verified by the automated checks.
+
+### Receipt matching and rewritten senders
+
+If a carrier or gateway rewrites inbound `From`, set this server environment
+variable and restart/redeploy:
+
+```dotenv
+IGNORE_SENDER_FROM=true
+```
+
+In this mode, a pass proves receipt of the generated text at B without checking
+the sender identity presented in that inbound webhook.
+
+The body identifies the test using its UUID and random nonce. These checks apply
+to `/webhooks/signalwire/inbound`:
+
+| Field or condition | Required match |
+| --- | --- |
+| `Body` | Complete `swsms:v1:<UUID v4>:<128-bit nonce>` generated for this run; only outer whitespace is trimmed; no substring or phone/time fallback |
+| `To` | Valid canonical E.164 and exact equality to this run's receiving number B, selected from the configured allowlist |
+| `AccountSid` | Exact configured inbound project (outbound project by default) |
+| Signature | Valid project Signing Key signature when verification is `on`; JSON requires the existing explicit verification-off setup |
+| `From` | Default: valid sender syntax and exact, case-sensitive equality to configured A. With `IGNORE_SENDER_FROM=true`: ignored entirely, including absence or invalid syntax |
+| `MessageSid` / `SmsSid` | Valid identifier; aliases must agree if both are supplied; deduplicated by inbound project + SID; it need not equal the outbound SID |
+| `Direction` | If nonempty, must be `inbound` (case normalized) |
+| Media | `NumMedia` absent or zero; no `MediaUrlN` or `MediaContentTypeN` fields |
+| Time and state | Server receipt time at/after creation and strictly before the deadline; run must still be active; finished results cannot change |
+
+The opt-out does not change the configured outbound `SIGNALWIRE_FROM` or its
+validation. Outbound status still requires the outbound project, exact configured
+`From` and run `To`, a matching outbound SID and consistent `test_id` when supplied,
+a recognized outbound status, and arrival before the deadline. Early status
+callbacks are staged until the create response confirms their SID. Status `Body`
+never counts as receipt. Creation and outbound status remain mandatory; a
+`delivered` callback is additionally required only when
+`REQUIRE_DELIVERED_STATUS=true`. Observed `failed`/`undelivered` statuses fail a run.
+
+The effective flag appears in `GET /` configuration, every test's
+`request.ignoreSenderFrom`, and `service_started`. `inbound_matched` records
+`senderFromIgnored`. Ignored inbound `From` values are omitted from message
+summaries and event logs. API callers cannot override this flag.
 
 Provider URLs must be HTTP(S), without embedded credentials or
 fragments; use HTTPS in deployment. HTTP support is for isolated local development.
@@ -286,7 +337,8 @@ curl --max-time 135 \
 ```
 
 For real acceptance verify outbound SID, a separate inbound SID, exact received
-body, expected A/B, valid signatures, outbound status callback, `status:ok`,
+body, expected B (and A unless inbound sender checking is disabled), valid
+signatures, outbound status callback, `status:ok`,
 `ok:true`, and empty `missing`. Compare provider and service logs on failure.
 A signed synthetic POST proves application handling, not live SMS delivery.
 
@@ -302,16 +354,16 @@ Do not configure multiple monitors/replicas to compete for the same run slot.
 
 The container repository is
 [`schumann/signalwire-sms-tester`](https://hub.docker.com/r/schumann/signalwire-sms-tester).
-The current patch release is `0.1.4`, with tags `0.1.4`, `v0.1.4`, `latest` and a
+The current patch release is `0.1.5`, with tags `0.1.5`, `v0.1.5`, `latest` and a
 full commit-SHA alias. Releases target Linux AMD64 and ARM64. Use the version tag
 for a fixed deployment; `latest` advances only for tagged releases.
 
 ```sh
-docker pull schumann/signalwire-sms-tester:0.1.4
+docker pull schumann/signalwire-sms-tester:0.1.5
 docker run -d --name signalwire-sms-tester --restart unless-stopped \
   -p 127.0.0.1:3001:3000 --env-file .env \
   -v signalwire-sms-tester-data:/app/data \
-  schumann/signalwire-sms-tester:0.1.4
+  schumann/signalwire-sms-tester:0.1.5
 ```
 
 The port above assumes an HTTPS proxy on the Docker host. Local source builds:
@@ -361,7 +413,7 @@ test inspection includes only the generated synthetic test body.
 
 The startup event `service_started` includes `version` from `package.json`
 (also the container release version), `nodeVersion`, `port`, `verifyWebhooks`
-and `requireDeliveredStatus`, so the deployed version and effective delivery
+and `requireDeliveredStatus`/`ignoreSenderFrom`, so the deployed version and effective matching
 requirement are visible in logs.
 
 JSONL is an **audit log, not a database**. It is not restored at startup. Restarts
@@ -403,7 +455,8 @@ This changes the HTTP wait budget, not the required SMS evidence.
 | --- | --- |
 | No outbound SID | Configuration, Messaging scope, API URL, credential rejection, transport/timeout uncertainty |
 | Status callback but no inbound | B's SMS capability, route/delivery, messaging handler URL and POST/cXML mode |
-| Inbound but no matched receipt | Exact body/nonce, complete A/B, receiving project, direction/media, deadline |
+| Inbound but no matched receipt | Exact body/nonce, complete B and A unless ignored, receiving project, direction/media, deadline |
+| Inbound sender rewritten | Set `IGNORE_SENDER_FROM=true` to ignore inbound `From`; body/To/project/SID/direction/media/deadline and outbound status checks still apply |
 | `403` webhook | Project Signing Key, correct project, exact public scheme/host/path/query, proxy rewrites |
 | Receipt present but missing status | Outbound callback reachability and signing configuration |
 | Strict mode waits for `delivered` | Route may have missing/delayed delivery reports despite content receipt |

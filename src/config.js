@@ -81,6 +81,7 @@ export function createConfig(env = {}, { root = ROOT } = {}) {
     testTimeoutMs: integer(env, 'TEST_TIMEOUT_MS', 120_000, MAX_TIMEOUT_MS),
     requestTimeoutMs: integer(env, 'SIGNALWIRE_REQUEST_TIMEOUT_MS', 10_000, MAX_TIMEOUT_MS),
     requireDeliveredStatus: boolean(env, 'REQUIRE_DELIVERED_STATUS', false),
+    ignoreSenderFrom: boolean(env, 'IGNORE_SENDER_FROM', false),
     maxActiveTests: integer(env, 'MAX_ACTIVE_TESTS', 1, 100),
     minSendIntervalMs: integer(env, 'MIN_SEND_INTERVAL_MS', 60_000),
     dataDir: resolve(root, str('DATA_DIR') || './data'),

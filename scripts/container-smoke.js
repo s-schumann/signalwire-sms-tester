@@ -50,6 +50,7 @@ try {
     assert.equal(startup.version,JSON.parse(await readFile('package.json','utf8')).version);
     assert.equal(startup.nodeVersion,process.versions.node);
     assert.equal(startup.requireDeliveredStatus,false);
+    assert.equal(startup.ignoreSenderFrom,false);
     assert.ok(!rows.some(row=>row.type==='test_started'||row.type==='raw_send_started'));
     console.log('Versioned startup and persistent event log verified; no SMS sends; SIGTERM exit 0');
   `));

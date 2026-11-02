@@ -44,6 +44,18 @@ test('optional null JSON error fields do not reject a successful status callback
   }
 });
 
+test('inbound sender opt-out discards only From before JSON field validation', () => {
+  for (const from of [null, 123, { rewritten: true }, 'provider rewritten sender']) {
+    const parsed = parseJsonWebhook(JSON.stringify({ From: from, Body: 'exact token' }), { ignoreSenderFrom: true });
+    assert.equal(Object.hasOwn(parsed, 'From'), false);
+    assert.equal(parsed.Body, 'exact token');
+  }
+  for (const field of ['Body', 'To', 'AccountSid', 'MessageSid']) {
+    assert.throws(() => parseJsonWebhook(JSON.stringify({ From: null, [field]: null }), { ignoreSenderFrom: true }), error => error.statusCode === 400);
+  }
+  assert.throws(() => parseJsonWebhook('{"From":null}'), error => error.statusCode === 400);
+});
+
 test('callback query preservation and external path/encoding are independent of Host headers', () => {
   const config = createConfig({ ...ENV, SIGNALWIRE_STATUS_WEBHOOK_URL: 'https://proxy.test/prefix/%73tatus?one=a%2Fb&two=%2B1' });
   const callback = statusCallbackUrl(config, 'test-id');

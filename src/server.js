@@ -154,7 +154,8 @@ export function createApp(config, store, { fetch = globalThis.fetch, now = Date.
         const isJson = req.headers['content-type']?.split(';')[0].trim().toLowerCase() === 'application/json';
         const text = await readBody(req, ['application/x-www-form-urlencoded', 'application/json']);
         if (isJson && config.verifyWebhooks) throw new HttpError(415, 'Signed JSON webhooks are not supported yet; verification-enabled webhooks require form encoding');
-        const form = isJson ? parseJsonWebhook(text) : parseForm(text);
+        const ignoreSenderFrom = inbound && config.ignoreSenderFrom;
+        const form = isJson ? parseJsonWebhook(text, { ignoreSenderFrom }) : parseForm(text);
         const suppliedSid = form.MessageSid ?? form.SmsSid;
         if (isSid(suppliedSid)) webhookContext.messageSid = suppliedSid;
         webhookContext.projectMatches = form.AccountSid === (inbound ? config.inboundProjectId : config.projectId);
@@ -169,7 +170,9 @@ export function createApp(config, store, { fetch = globalThis.fetch, now = Date.
         if (!form.AccountSid) throw new HttpError(400, 'Webhook requires AccountSid');
         if (form.AccountSid !== (inbound ? config.inboundProjectId : config.projectId)) throw new HttpError(403, 'Unexpected webhook project');
         const sid = alias(form, 'MessageSid', 'SmsSid');
-        if (!isSid(sid) || !isSmsSender(form.From) || !isE164(form.To)) throw new HttpError(400, 'Webhook requires valid message SID, sender From and E.164 destination To');
+        if (!isSid(sid)) throw new HttpError(400, 'Webhook requires a valid message SID');
+        if (!isE164(form.To)) throw new HttpError(400, 'Webhook requires an E.164 destination To');
+        if (!ignoreSenderFrom && !isSmsSender(form.From)) throw new HttpError(400, 'Webhook requires a valid sender From');
         if (inbound) {
           if (typeof form.Body !== 'string') throw new HttpError(400, 'Inbound webhook requires Body');
           if (form.NumMedia !== undefined && !/^\d+$/.test(form.NumMedia)) throw new HttpError(400, 'Invalid NumMedia');
@@ -197,7 +200,7 @@ export function createApp(config, store, { fetch = globalThis.fetch, now = Date.
           authentication: 'Authorization: Bearer <API_KEY> or X-API-Key; query keys rejected',
           passCriteria: ['signalWireMessageCreated', 'signalWireStatus', 'inboundSmsMatched', ...(config.requireDeliveredStatus ? ['signalWireDelivered'] : [])],
           limits: { testTimeoutMs: config.testTimeoutMs, maxTimeoutMs: MAX_TIMEOUT_MS, requestTimeoutMs: config.requestTimeoutMs, maxActiveTests: config.maxActiveTests, minSendIntervalMs: config.minSendIntervalMs, maxBodyBytes: MAX_BODY_BYTES, maxMessageChars: MAX_MESSAGE_CHARS, maxRecentEvents: 500, maxTerminalTests: 1000, maxMessages: 1000, terminalRetentionMs: 86_400_000 },
-          configuration: { sendConfigured: sendConfigurationErrors(config).length === 0, verifyWebhooks: config.verifyWebhooks, requireDeliveredStatus: config.requireDeliveredStatus, defaultDestinationConfigured: Boolean(config.defaultTo), inboundUsesSeparateProject: config.projectId !== config.inboundProjectId },
+          configuration: { sendConfigured: sendConfigurationErrors(config).length === 0, verifyWebhooks: config.verifyWebhooks, requireDeliveredStatus: config.requireDeliveredStatus, ignoreSenderFrom: config.ignoreSenderFrom, defaultDestinationConfigured: Boolean(config.defaultTo), inboundUsesSeparateProject: config.projectId !== config.inboundProjectId },
         });
       }
       if (req.method === 'GET' && url.pathname === '/tests') return json(res, 200, { tests: store.list(limitQuery(url, 1000)) });
@@ -305,6 +308,7 @@ async function main() {
   app.server.listen(config.port, config.host, () => logger.log('service_started', {
     version, nodeVersion: process.versions.node, port: config.port,
     verifyWebhooks: config.verifyWebhooks, requireDeliveredStatus: config.requireDeliveredStatus,
+    ignoreSenderFrom: config.ignoreSenderFrom,
   }));
   let stopping = false;
   for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => {

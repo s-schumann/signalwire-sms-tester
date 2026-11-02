@@ -23,12 +23,15 @@ test('configuration defaults, caps and strict values', () => {
   const config = createConfig(ENV, { root: '/tmp/isolated' });
   assert.equal(config.testTimeoutMs, 120000);
   assert.equal(config.requireDeliveredStatus, false);
+  assert.equal(config.ignoreSenderFrom, false);
+  assert.equal(createConfig({ ...ENV, IGNORE_SENDER_FROM: 'true' }).ignoreSenderFrom, true);
+  assert.equal(createConfig({ ...ENV, IGNORE_SENDER_FROM: 'false' }).ignoreSenderFrom, false);
   assert.equal(createConfig({ ...ENV, REQUIRE_DELIVERED_STATUS: 'false' }).requireDeliveredStatus, false);
   assert.equal(createConfig({ ...ENV, REQUIRE_DELIVERED_STATUS: 'true' }).requireDeliveredStatus, true);
   assert.equal(config.dataDir, '/tmp/isolated/data');
   assert.deepEqual(sendConfigurationErrors(config), []);
   assert.equal(createConfig({ ...ENV, TEST_TIMEOUT_MS: '700000' }).testTimeoutMs, 600000);
-  for (const [name, value] of [['TEST_TIMEOUT_MS', 'NaN'], ['MIN_SEND_INTERVAL_MS', '0'], ['PORT', '-1'], ['SIGNALWIRE_REQUEST_TIMEOUT_MS', '1.5'], ['MAX_ACTIVE_TESTS', 'Infinity'], ['REQUIRE_DELIVERED_STATUS', 'yes'], ['SIGNALWIRE_VERIFY_WEBHOOKS', 'false']]) {
+  for (const [name, value] of [['TEST_TIMEOUT_MS', 'NaN'], ['MIN_SEND_INTERVAL_MS', '0'], ['PORT', '-1'], ['SIGNALWIRE_REQUEST_TIMEOUT_MS', '1.5'], ['MAX_ACTIVE_TESTS', 'Infinity'], ['REQUIRE_DELIVERED_STATUS', 'yes'], ['IGNORE_SENDER_FROM', 'yes'], ['SIGNALWIRE_VERIFY_WEBHOOKS', 'false']]) {
     assert.throws(() => createConfig({ ...ENV, [name]: value }), new RegExp(name));
   }
   for (const value of ['2025550100', '+1 2025550100', ' +12025550100', '+01234567', '+1234567890123456', '+12025550100\n', '+12025550100\r']) assert.equal(isE164(value), false);
