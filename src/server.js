@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { loadConfig, sendConfigurationErrors, webhookConfigurationErrors, isE164, isSid, MAX_BODY_BYTES, MAX_MESSAGE_CHARS, MAX_TIMEOUT_MS } from './config.js';
 import { HttpError } from './errors.js';
 import { createMessage } from './signalwire.js';
-import { parseForm, verifyForm, safeEqual, signedWebhookUrl, statusCallbackUrl } from './signature.js';
+import { parseForm, parseJsonWebhook, verifyForm, safeEqual, signedWebhookUrl, statusCallbackUrl } from './signature.js';
 import { EMPTY_MESSAGING_XML, XML_CONTENT_TYPE } from './xml.js';
 import { createLogger } from './logger.js';
 import { Store } from './store.js';
@@ -20,7 +20,8 @@ function json(res, status, body, headers = {}) {
 }
 
 function readBody(req, contentType) {
-  if (req.headers['content-type']?.split(';')[0].trim().toLowerCase() !== contentType) throw new HttpError(415, `Expected ${contentType}`);
+  const accepted = Array.isArray(contentType) ? contentType : [contentType];
+  if (!accepted.includes(req.headers['content-type']?.split(';')[0].trim().toLowerCase())) throw new HttpError(415, `Expected ${accepted.join(' or ')}`);
   if (Number(req.headers['content-length']) > MAX_BODY_BYTES) { req.resume(); throw new HttpError(413, 'Request body exceeds 256 KiB'); }
   return new Promise((resolveBody, reject) => {
     let size = 0;
@@ -140,7 +141,10 @@ export function createApp(config, store, { fetch = globalThis.fetch, now = Date.
       if (req.method === 'POST' && (inbound || status)) {
         const errors = webhookConfigurationErrors(config, inbound);
         if (errors.length) throw new HttpError(503, 'Webhook verification configuration unavailable', { variables: errors });
-        const form = parseForm(await readBody(req, 'application/x-www-form-urlencoded'));
+        const isJson = req.headers['content-type']?.split(';')[0].trim().toLowerCase() === 'application/json';
+        const text = await readBody(req, ['application/x-www-form-urlencoded', 'application/json']);
+        if (isJson && config.verifyWebhooks) throw new HttpError(415, 'Signed JSON webhooks are not supported yet; verification-enabled webhooks require form encoding');
+        const form = isJson ? parseJsonWebhook(text) : parseForm(text);
         // Configured query parameters must survive the public proxy unchanged.
         const configuredUrl = inbound ? config.inboundWebhookUrl : config.statusWebhookUrl;
         const configuredQuery = configuredUrl ? new URL(configuredUrl).searchParams : [];
@@ -176,7 +180,7 @@ export function createApp(config, store, { fetch = globalThis.fetch, now = Date.
         queryFields(url, []);
         return json(res, 200, {
           name: 'signalwire-sms-tester', version,
-          endpoints: { 'GET /health': 'Public liveness; no SMS', 'POST /tests': 'JSON {to?, timeoutMs?}; 201 after creation', 'GET /tests': 'Recent tests; limit?', 'GET /tests/{test_id}': 'Inspect a test', 'GET /checks/round-trip': 'Sends one SMS; to?, timeoutMs?, waitTimeoutMs?; 200 on pass, 503 while pending/failed; upstream errors 502/504', 'POST /messages': 'Diagnostic SMS; JSON {to?, body}; 201', 'GET /messages': 'Safe message summaries; limit?', 'GET /events': 'Safe recent events; limit?', 'POST /webhooks/signalwire/status': 'Provider-authenticated form POST', 'POST /webhooks/signalwire/inbound': 'Provider-authenticated form POST; empty cXML' },
+          endpoints: { 'GET /health': 'Public liveness; no SMS', 'POST /tests': 'JSON {to?, timeoutMs?}; 201 after creation', 'GET /tests': 'Recent tests; limit?', 'GET /tests/{test_id}': 'Inspect a test', 'GET /checks/round-trip': 'Sends one SMS; to?, timeoutMs?, waitTimeoutMs?; 200 on pass, 503 while pending/failed; upstream errors 502/504', 'POST /messages': 'Diagnostic SMS; JSON {to?, body}; 201', 'GET /messages': 'Safe message summaries; limit?', 'GET /events': 'Safe recent events; limit?', 'POST /webhooks/signalwire/status': 'Signed form POST; JSON also accepted with verification explicitly off', 'POST /webhooks/signalwire/inbound': 'Signed form POST; JSON also accepted with verification explicitly off; empty cXML' },
           authentication: 'Authorization: Bearer <API_KEY> or X-API-Key; query keys rejected',
           passCriteria: ['signalWireMessageCreated', 'signalWireStatus', 'inboundSmsMatched', ...(config.requireDeliveredStatus ? ['signalWireDelivered'] : [])],
           limits: { testTimeoutMs: config.testTimeoutMs, maxTimeoutMs: MAX_TIMEOUT_MS, requestTimeoutMs: config.requestTimeoutMs, maxActiveTests: config.maxActiveTests, minSendIntervalMs: config.minSendIntervalMs, maxBodyBytes: MAX_BODY_BYTES, maxMessageChars: MAX_MESSAGE_CHARS, maxRecentEvents: 500, maxTerminalTests: 1000, maxMessages: 1000, terminalRetentionMs: 86_400_000 },

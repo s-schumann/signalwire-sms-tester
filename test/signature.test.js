@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseForm, signForm, verifyForm, statusCallbackUrl, signedWebhookUrl } from '../src/signature.js';
+import { parseForm, parseJsonWebhook, signForm, verifyForm, statusCallbackUrl, signedWebhookUrl } from '../src/signature.js';
 import { createConfig } from '../src/config.js';
 import { ENV } from '../test-support/helpers.js';
 
@@ -21,6 +21,17 @@ test('all decoded form fields are included; repeated keys rejected explicitly', 
   assert.equal(parseForm('From=%2B12025550100&Body=a%2Bb+text').Body, 'a+b text');
   assert.throws(() => parseForm('From=a&From=a'), /Repeated/);
   assert.equal(parseForm('__proto__=safe').__proto__, 'safe');
+});
+
+test('flat webhook JSON preserves text and normalizes integer counts/error codes', () => {
+  const payload = parseJsonWebhook('{"From":"+12025550100","Body":"a+b text","NumMedia":0,"NumSegments":1,"ErrorCode":30003,"__proto__":"safe"}');
+  assert.equal(payload.From, '+12025550100');
+  assert.equal(payload.Body, 'a+b text');
+  assert.equal(payload.NumMedia, '0');
+  assert.equal(payload.NumSegments, '1');
+  assert.equal(payload.ErrorCode, '30003');
+  assert.equal(payload.__proto__, 'safe');
+  for (const text of ['{invalid', 'null', '[]', '"text"', '{"Body":12}', '{"Body":null}', '{"From":{}}', '{"NumMedia":-1}', '{"NumMedia":1.5}']) assert.throws(() => parseJsonWebhook(text), error => error.statusCode === 400);
 });
 
 test('callback query preservation and external path/encoding are independent of Host headers', () => {

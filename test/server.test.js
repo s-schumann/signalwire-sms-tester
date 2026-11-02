@@ -114,6 +114,73 @@ test('webhook malformed fields, repeated keys, aliases and unrelated receipts', 
   assert.equal(JSON.stringify(h.logger.recent()).includes(fake.body), false);
 });
 
+test('unsigned JSON callbacks work with verification off; a plain Test receipt cannot pass', async t => {
+  const h = await setup(t, { server: true, env: { SIGNALWIRE_VERIFY_WEBHOOKS: 'off', SIGNALWIRE_SIGNING_KEY: '' } });
+  const { test: run } = await (await h.post('/tests')).json();
+  const options = { headers: { authorization: '' } };
+  const callback = `/webhooks/signalwire/status?test_id=${run.id}`;
+  const status = await h.post(callback, statusForm({ Body: run.body }), options);
+  assert.equal(status.status, 200);
+  assert.deepEqual(h.store.get(run.id).missing, ['inboundSmsMatched']);
+  // Same Compatibility JSON shape as the reported receipt, with synthetic IDs/numbers.
+  const unrelated = {
+    ...inboundForm(run, { Body: 'Test', MessageSid: 'unrelated-inbound' }),
+    SmsSid: 'unrelated-inbound', SmsMessageSid: 'unrelated-inbound',
+    SmsStatus: 'received', MessageStatus: 'received', ApiVersion: '2010-04-01', NumSegments: '1',
+  };
+  delete unrelated.Direction;
+  const acknowledgment = await h.post('/webhooks/signalwire/inbound', unrelated, options);
+  assert.equal(acknowledgment.status, 200);
+  assert.equal(acknowledgment.headers.get('content-type'), 'application/xml; charset=utf-8');
+  assert.equal(await acknowledgment.text(), '<?xml version="1.0" encoding="UTF-8"?><Response/>');
+  assert.equal(h.store.get(run.id).ok, false);
+  assert.deepEqual(h.store.get(run.id).missing, ['inboundSmsMatched']);
+  const receipt = { ...unrelated, Body: run.body, MessageSid: 'matched-inbound', SmsSid: 'matched-inbound', SmsMessageSid: 'matched-inbound' };
+  assert.equal((await h.post('/webhooks/signalwire/inbound', receipt, options)).status, 200);
+  assert.equal(h.store.get(run.id).ok, true);
+  const frozen = h.store.get(run.id);
+  await h.post('/webhooks/signalwire/inbound', receipt, options);
+  assert.deepEqual(h.store.get(run.id), frozen);
+});
+
+test('JSON accepts numeric counts while project, numbers and required fields stay enforced', async t => {
+  const h = await setup(t, { server: true, env: { SIGNALWIRE_VERIFY_WEBHOOKS: 'off' } });
+  const run = (await (await h.post('/tests')).json()).test;
+  const options = { headers: { authorization: '', 'content-type': 'application/json; charset=utf-8' } };
+  assert.equal((await h.post('/webhooks/signalwire/inbound', inboundForm(run, { AccountSid: 'other-project' }), options)).status, 403);
+  assert.equal((await h.post('/webhooks/signalwire/inbound', inboundForm(run, { From: '+12025550999', MessageSid: 'wrong-sender' }), options)).status, 200);
+  assert.equal(h.store.get(run.id).expected.inboundSmsMatched, false);
+  const missing = inboundForm(run); delete missing.Body;
+  assert.equal((await h.post('/webhooks/signalwire/inbound', missing, options)).status, 400);
+  assert.equal((await h.post('/webhooks/signalwire/inbound', inboundForm(run, { NumMedia: 0, NumSegments: 1 }), options)).status, 200);
+  assert.equal(h.store.get(run.id).expected.inboundSmsMatched, true);
+  assert.deepEqual(h.store.get(run.id).missing, ['signalWireStatus']);
+  assert.equal((await h.post(`/webhooks/signalwire/status?test_id=${run.id}`, statusForm({ MessageStatus: 'undelivered', ErrorCode: 30003 }), options)).status, 200);
+  assert.equal(h.store.get(run.id).status, 'failed');
+  assert.equal(h.store.get(run.id).errorCode, '30003');
+});
+
+test('JSON webhooks reject malformed, excessive and unsupported payloads with verification off', async t => {
+  const h = await setup(t, { server: true, env: { SIGNALWIRE_VERIFY_WEBHOOKS: 'off' } });
+  for (const body of ['{invalid', 'null', '[]', '{"Body":1}', '{"Extra":{"nested":true}}']) {
+    assert.equal((await h.post('/webhooks/signalwire/inbound', {}, { body, headers: { authorization: '' } })).status, 400);
+  }
+  assert.equal((await h.post('/webhooks/signalwire/inbound', {}, { body: 'x'.repeat(256 * 1024 + 1) })).status, 413);
+  assert.equal((await h.post('/webhooks/signalwire/inbound', {}, { headers: { 'content-type': 'text/plain' } })).status, 415);
+});
+
+test('JSON fails closed when verification is on, even with a form-style signature', async t => {
+  const h = await setup(t, { server: true });
+  const run = (await (await h.post('/tests')).json()).test;
+  const payload = inboundForm(run);
+  const result = await h.post('/webhooks/signalwire/inbound', payload, { headers: { authorization: '', 'x-signalwire-signature': signForm(h.config.inboundSigningKey, h.config.inboundWebhookUrl, payload) } });
+  assert.equal(result.status, 415);
+  assert.match((await result.json()).reason, /Signed JSON webhooks are not supported/);
+  assert.equal(h.store.get(run.id).expected.inboundSmsMatched, false);
+  assert.equal((await h.webhook('inbound', payload)).status, 200);
+  assert.equal(h.store.get(run.id).expected.inboundSmsMatched, true);
+});
+
 test('atomic active limit and shared cooldown cover raw/test/check endpoints', async t => {
   const gate = deferred();
   let calls = 0;

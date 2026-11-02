@@ -1,7 +1,8 @@
 # Implementation handoff — 2026-11-02
 
 The service described by `HANDOVER.md` is implemented as an independent Node.js
-ES module project, version **0.1.0**. The original handover remains the brief;
+ES module project, initially version **0.1.0**, followed by the **0.1.1** JSON
+compatibility patch. The original handover remains the brief;
 `README.md` describes the delivered behavior and operator setup.
 
 ## Delivered
@@ -94,7 +95,7 @@ or phone-number changes are part of publication. Calling-project compatibility
 was checked against its template/source, without reading or copying its live
 `.env`; the exact migration differences are now in `README.md`.
 
-## Publication verified
+## Publication verified — 0.1.0
 
 Published to Docker Hub on 2026-11-02:
 
@@ -117,3 +118,22 @@ authenticated read, mounted log persistence and clean shutdown behavior.
 The release evidence above is a post-publication documentation update; the
 immutable release tag and image continue to identify source commit `a808039`.
 No Git source was pushed and no live SMS was sent.
+
+## JSON compatibility patch — 0.1.1
+
+The running deployment receives Compatibility fields as JSON. Per the user's
+instruction, JSON parsing is added for the existing explicit verification-off
+setting; JSON signing is deferred. Both inbound and outbound status routes accept
+flat JSON, retain form support, and preserve the existing project/number/body,
+media, deadline, deduplication and terminal-state checks. JSON with verification
+on fails closed with `415`; signed form verification remains available.
+
+The reported payload shape is covered with synthetic numbers/IDs in tests.
+Unrelated `Body: "Test"` receives empty cXML but cannot pass a test. Only the
+server-generated unique body can match. Counts and error codes may be integer
+JSON values; other fields must be strings. Malformed/oversized/unsupported
+payloads retain the existing error status behavior.
+
+Syntax checks and all **45** mocked tests passed on local Node 24.22.2 before
+release preparation. Publication continues to target the authorized
+`schumann/signalwire-sms-tester` repository. No live SMS is sent during checks.

@@ -10,6 +10,20 @@ export function parseForm(text) {
   return form;
 }
 
+export function parseJsonWebhook(text) {
+  let payload;
+  try { payload = JSON.parse(text); }
+  catch { throw new HttpError(400, 'Invalid webhook JSON'); }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new HttpError(400, 'Webhook JSON must be an object');
+  const form = Object.create(null);
+  for (const [key, value] of Object.entries(payload)) {
+    if (typeof value === 'string') form[key] = value;
+    else if (['NumMedia', 'NumSegments', 'ErrorCode'].includes(key) && Number.isSafeInteger(value) && value >= 0) form[key] = String(value);
+    else throw new HttpError(400, 'Webhook JSON fields must be strings; counts and ErrorCode may also be nonnegative integers');
+  }
+  return form;
+}
+
 // Compatibility form contract: exact URL, then case-sensitive sorted names/values.
 // Repeated keys are rejected at the parser, rather than choosing an ambiguous value.
 export function signForm(key, url, form) {

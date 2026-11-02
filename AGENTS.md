@@ -15,6 +15,9 @@ ES modules, built-ins only. `package.json` is the version source.
   global cooldown; reserve concurrency before awaiting network I/O.
 - Webhooks use project Signing Keys, never API tokens. Do not trust Host/forwarded
   headers or disable verification because a proxy/callback URL changes.
+- Per the user's temporary setup, flat JSON webhooks are accepted only when
+  verification is explicitly off. Keep signed form support intact and JSON
+  fail-closed with verification on until JSON signing is implemented separately.
 - Keep state, evidence, deduplication and logs bounded. Do not log arbitrary SMS
   bodies, credentials, signatures or upstream error payloads.
 - Single process/replica; events.jsonl is an audit log, not restored state.

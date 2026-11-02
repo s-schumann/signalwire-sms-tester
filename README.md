@@ -130,6 +130,19 @@ trying alternative port spellings. Both signature header names are supported;
 if both are supplied, both must validate. The fixed known-vector test comes from
 the [published Compatibility security example](https://www.twilio.com/docs/usage/security#validating-requests).
 
+For the temporary verification-off setup, both webhook routes also accept
+`Content-Type: application/json`. Set `SIGNALWIRE_VERIFY_WEBHOOKS=off` explicitly;
+the default stays `on`. JSON must be a flat Compatibility object with string
+fields (`MessageSid`/`SmsSid`, `AccountSid`, `From`, `To`, `Body`, status fields,
+etc.). `NumMedia`, `NumSegments` and `ErrorCode` may also be nonnegative integers.
+The inbound response remains empty cXML. Account, number, body, media and deadline
+checks still apply. JSON signature verification is deferred: with verification
+`on`, JSON callbacks return `415`; signed form callbacks continue to work.
+
+A manual SMS with `Body: "Test"` is acknowledged as unrelated traffic. Start a
+test/check to generate the unique `swsms:v1:...` text; that exact text must arrive
+at the inbound route to satisfy the receipt requirement.
+
 ## Configuration
 
 `.env` is loaded from the repository root regardless of the shell's directory.
@@ -185,8 +198,8 @@ public, including when the service has no API key configured.
 | `POST /messages` | Diagnostic JSON `{to?, body}`; `201 {message}` safe summary, no round-trip test |
 | `GET /messages` | Bounded safe inbound/outbound summaries; `limit` up to 1000 |
 | `GET /events` | Safe recent events newest first; `limit` defaults to 100, capped at 500 |
-| `POST /webhooks/signalwire/status` | Signed form POST; outbound project; `200` JSON acknowledgment |
-| `POST /webhooks/signalwire/inbound` | Signed form POST; receiving project; `200` empty messaging cXML |
+| `POST /webhooks/signalwire/status` | Form POST, or JSON when verification is explicitly off; outbound project; `200` JSON acknowledgment |
+| `POST /webhooks/signalwire/inbound` | Form POST, or JSON when verification is explicitly off; receiving project; `200` empty messaging cXML |
 
 Unknown request fields, repeated query parameters, malformed JSON and bad types
 return `400`. JSON timeout values must be numbers, not strings. Timeout/wait
@@ -195,7 +208,8 @@ must be positive decimal integers. Percent-encode a leading `+` in query phone
 numbers (`%2B`) or use curl `--data-urlencode`.
 
 Bodies are bounded at 256 KiB; send endpoints accept JSON and webhooks accept
-`application/x-www-form-urlencoded`. Raw text is bounded to 1600 UTF-16 code units
+`application/x-www-form-urlencoded` (also `application/json` with verification
+explicitly off). Raw text is bounded to 1600 UTF-16 code units
 and may incur multiple SMS segments depending on length and encoding. The
 [provider's status reference](https://signalwire.com/docs/compatibility-api/rest/messages/webhooks/sms-status-callback)
 describes segmentation and the difference between `sent` and `delivered`.
@@ -263,16 +277,16 @@ Do not configure multiple monitors/replicas to compete for the same run slot.
 
 The container repository is
 [`schumann/signalwire-sms-tester`](https://hub.docker.com/r/schumann/signalwire-sms-tester).
-Release tags `0.1.0`, `v0.1.0` and `latest` identify the initial release, with a
+The current patch release is `0.1.1`, with tags `0.1.1`, `v0.1.1`, `latest` and a
 full commit-SHA alias. Releases target Linux AMD64 and ARM64. Use the version tag
 for a fixed deployment; `latest` advances only for tagged releases.
 
 ```sh
-docker pull schumann/signalwire-sms-tester:0.1.0
+docker pull schumann/signalwire-sms-tester:0.1.1
 docker run -d --name signalwire-sms-tester --restart unless-stopped \
   -p 127.0.0.1:3001:3000 --env-file .env \
   -v signalwire-sms-tester-data:/app/data \
-  schumann/signalwire-sms-tester:0.1.0
+  schumann/signalwire-sms-tester:0.1.1
 ```
 
 The port above assumes an HTTPS proxy on the Docker host. Local source builds:

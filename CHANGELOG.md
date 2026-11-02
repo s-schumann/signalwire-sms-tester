@@ -3,6 +3,17 @@
 Changes follow Semantic Versioning. The 0.x interface is unstable; minor
 versions may introduce breaking changes.
 
+## 0.1.1 — 2026-11-02
+
+- Accept flat JSON Compatibility callbacks at both webhook endpoints when
+  `SIGNALWIRE_VERIFY_WEBHOOKS=off`, including integer counts and error codes.
+- Preserve form callbacks, empty inbound cXML and all body/project/number/deadline
+  correlation rules. A plain `Test` message remains unrelated traffic.
+- Defer JSON signature work as requested; verification-on JSON requests fail
+  closed with `415` and signed form verification remains unchanged.
+- Add five mocked parser/HTTP regression tests covering the reported payload shape,
+  false-pass prevention, validation and verification-mode behavior.
+
 ## 0.1.0 — 2026-11-02
 
 - Add an independent, dependency-free SignalWire Compatibility SMS tester.
