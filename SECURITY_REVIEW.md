@@ -36,7 +36,11 @@ a distribution-branch mismatch. Do not mix edge packages into the stable image
 to satisfy that comparison. No scanner findings are hidden or globally ignored.
 
 Trivy **0.76.1**, with database updated **2026-11-02 13:15:56 UTC**, reports zero
-known vulnerabilities in the baseline's four OS packages and Node package.
+known vulnerabilities in the baseline's four OS packages and application manifest.
+Its `node-pkg` result is **signalwire-sms-tester**, not the Node.js executable:
+this result must not be described as a complete Node-runtime CVE scan. The runtime
+assessment additionally uses the executable's version/component inventory and the
+official Node release index/security advisory above.
 Final ARM64 and AMD64 reports must be checked independently. This does not cover
 unknown CVEs, all possible statically bundled component detection, or application
 logic; the manual review and vendor release check complement the scanners.

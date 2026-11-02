@@ -344,8 +344,10 @@ security review. The configured origin is now the public
 checked against the local baseline before publication work.
 
 Node 22.23.4 is still the latest official 22.x security release as of 2026-11-02.
-Trivy 0.76.1 with its 2026-11-02 database finds no known baseline OS/Node package
-vulnerabilities. Docker Scout reports CVE-2026-107891 against musl 1.2.6-r3, but
+Trivy 0.76.1 with its 2026-11-02 database finds no known baseline OS/application
+manifest vulnerabilities. Its `node-pkg` entry identifies this app, not the Node
+executable; runtime assessment uses the actual component inventory and official
+release/advisory records separately. Docker Scout reports CVE-2026-107891 against musl 1.2.6-r3, but
 Alpine's 3.24 secdb and tracker explicitly mark r3 fixed; r6 is the edge-branch
 fix. The raw finding and vendor evidence are retained without suppressions.
 
