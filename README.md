@@ -1,0 +1,385 @@
+# SignalWire SMS round-trip tester
+
+A small, dependency-free Node.js service for checking a configured SignalWire
+SMS route. An external monitor starts a test, the service sends one synthetic SMS
+from number A to number B, and B's inbound messaging webhook supplies the actual
+received text. There is no SMS reply, dashboard, voice integration or send scheduler.
+
+```text
+monitor -> tester -> Compatibility Messages API -> A -> SMS -> B
+              ^                 |                           |
+              +-- status POST --+                           |
+              +---------------- inbound messaging POST -----+
+```
+
+A pass requires all of these before the deadline:
+
+- Successful message creation with an outbound SID.
+- An authenticated, matching outbound status callback in a recognized state.
+- An authenticated inbound webhook containing the exact generated text and A/B.
+- A `delivered` callback when `REQUIRE_DELIVERED_STATUS=true`.
+
+`failed` and `undelivered` fail immediately once their outbound SID is confirmed.
+A delivery report alone cannot pass. `sent` plus actual inbound content can pass
+in the default mode. The API response's status is not callback evidence.
+
+The body is `swsms:v1:<fresh UUID v4>:<random 128-bit lowercase hex nonce>`.
+Inbound and outbound SIDs are separate. Receipt requires the full body after
+outer whitespace trimming, complete E.164 number equality, inbound direction
+when supplied, no media, and server receipt time strictly before the deadline.
+Early callbacks are staged until the API establishes the outbound SID. Duplicate,
+unrelated and late webhooks are acknowledged but cannot rewrite a finished run.
+
+This verifies the configured SignalWire A-to-B path. It does not establish
+delivery to a handset or traversal of an independent carrier.
+
+## Setup
+
+Requires Node.js **22.23.4 or newer**, using a current security-patched supported
+release line. There are no npm dependencies to install. The container pins the
+[Node 22.23.4 security release](https://nodejs.org/en/blog/release/v22.23.4);
+keep the runtime and Docker base current ([release schedule](https://nodejs.org/en/about/previous-releases)).
+
+1. Copy `.env.example` to `.env`. Set a strong `API_KEY`, outbound credentials,
+   Signing Key, public HTTPS origin, distinct SMS-enabled A/B numbers and a
+   nonempty destination allowlist. Set B's project/key separately if needed.
+2. Run `npm run check`, `npm test`, then `npm start` (or use Docker below).
+   Expose the service through an HTTPS proxy.
+3. Configure B's **inbound messaging Compatibility/cXML webhook**, **POST**, to
+   `https://your-public-origin/webhooks/signalwire/inbound`, or the exact
+   `SIGNALWIRE_INBOUND_WEBHOOK_URL` override. Outbound callbacks are set per send.
+4. Export `SMS_TESTER_API_KEY` separately in your local shell and run one manual
+   acceptance test. Each accepted test/check sends a real, potentially billable SMS.
+
+```sh
+cp .env.example .env
+# Edit .env before sending anything.
+npm run check
+npm test
+npm start
+```
+
+The service never sends on startup. `/health` works without SignalWire credentials.
+Missing provider/receiver configuration blocks sends with `400` and variable
+names. Missing `API_KEY` disables operational APIs with `503`. Invalid numeric,
+boolean, verification-mode or dotenv syntax prevents startup.
+
+Both numbers must be operator-controlled and SMS-capable on the intended route.
+Confirm Messaging permissions, destination eligibility and applicable account
+requirements using the provider's [sending guide](https://signalwire.com/docs/compatibility-api/guides/send-sms).
+No numbers or credentials from another repository are needed.
+
+### Reusing configuration from the calling tester
+
+Start with this project's `.env.example` and transfer only the shared settings
+you intend to reuse. The calling tester's `.env` does **not** work unchanged:
+
+| Calling setting | SMS tester requirement |
+| --- | --- |
+| `SIGNALWIRE_BASE_URL`, `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_SIGNING_KEY` | Reusable for the same outbound project |
+| `SIGNALWIRE_TOKEN` | Reusable only if its API token has **Messaging** scope; Voice scope alone is insufficient |
+| `SIGNALWIRE_FROM` | Reusable only if this number is also SMS-enabled for the intended route |
+| `DEFAULT_TO`, `ALLOWED_TO_NUMBERS` | Use distinct receiving **SignalWire SMS** number B; the calling tester's Placetel destination is not this receiver; an empty allowlist blocks sends |
+| `PUBLIC_BASE_URL`, `SIGNALWIRE_STATUS_WEBHOOK_URL` | Point at the SMS deployment; clear an old status override to use the new origin, or set the exact new external status URL |
+| `SIGNALWIRE_VERIFY_WEBHOOKS=auto` | Change to **`on`**; this service accepts only `on`/`off` and never falls back from Signing Key to API token |
+| `SIGNALWIRE_VOICE_WEBHOOK_URL`, `SIGNALWIRE_SAY_MESSAGE`, `PLACETEL_*`, `WAIT_FOR_PLACETEL_WEBHOOK` | Unused; omit them. Actual inbound SMS evidence is always required |
+| `API_KEY`, host/port/timeouts | Same concepts; use a separate service key and SMS log volume for independent deployment |
+
+Configure B's messaging webhook separately as described below. If B is in the
+same project, leave the inbound project/key overrides blank; otherwise supply
+its own project ID and Signing Key. The API token's actual scope and the phone
+numbers' SMS capability must be checked in SignalWire; reading configuration
+alone cannot establish either. No live calling-project `.env` is read or copied
+by the SMS service or its release process.
+
+## Receiving number and proxy
+
+Set B's **messaging** handler to an external Compatibility/cXML POST webhook.
+The [receiving guide](https://signalwire.com/docs/compatibility-api/guides/receive-sms)
+describes assigning messaging handling to a number. In the Legacy Dashboard this
+is under **Messaging Settings → LaML Webhooks**. In newer dashboards open the
+number's messaging settings and select the Compatibility/cXML external webhook
+handler; labels vary. A hosted reply script is unnecessary for this service.
+Record the actual dashboard labels and number setup during live acceptance;
+no provider dashboard configuration has been performed by this implementation.
+
+The response is exactly
+`<?xml version="1.0" encoding="UTF-8"?><Response/>`, with XML content type.
+There is no `<Message>` verb and therefore no automatic SMS reply.
+
+Keep `PUBLIC_BASE_URL` as the canonical origin (scheme and host, without a path).
+For a proxy path prefix, set both explicit webhook URLs to their exact public
+addresses and rewrite the proxy paths to the service's `/webhooks/...` routes.
+Fixed query parameters are supported; preserve their encoding and order at the
+proxy. `test_id` is reserved and is appended to outbound test callbacks by `URL`.
+Changing an environment variable does not configure B's number at SignalWire.
+
+Verification uses each project's **Signing Key**, distinct from the API token,
+and checks `AccountSid` as well. For B in another project, supply its project ID
+and Signing Key; no receiving-project API token is necessary. Overrides and TLS
+termination never disable verification. The service ignores `Host` and forwarded
+headers when building signed public URLs.
+
+The form signature contract was checked against SignalWire's
+[security documentation](https://signalwire.com/docs/compatibility-api/guides/webhook-security)
+and [official Compatibility SDK implementation](https://github.com/signalwire/compatibility-api-js/blob/main/lib/webhooks/webhooks.js):
+HMAC-SHA1, base64, exact public URL followed by case-sensitive sorted form names
+and values. Every supplied form field is included. This service rejects repeated
+form keys explicitly and requires the exact configured URL spelling rather than
+trying alternative port spellings. Both signature header names are supported;
+if both are supplied, both must validate. The fixed known-vector test comes from
+the [published Compatibility security example](https://www.twilio.com/docs/usage/security#validating-requests).
+
+## Configuration
+
+`.env` is loaded from the repository root regardless of the shell's directory.
+Existing environment entries, including empty entries, win. Single/double quotes,
+single-line values, blank values and comments are supported. Double quotes decode
+`\n`, `\r`, `\"` and `\\`; multiline quoted values are rejected. Blank optional
+values select the defaults described below. A bare inline `#` starts a comment
+when preceded by whitespace (quote values containing literal comment syntax).
+
+| Variable | Default / meaning |
+| --- | --- |
+| `PORT`, `HOST` | `3000`, `0.0.0.0` |
+| `API_KEY` | Required for all operational endpoints; use a strong random secret |
+| `PUBLIC_BASE_URL` | Canonical public HTTPS origin; required for sending |
+| `SIGNALWIRE_BASE_URL` | Operator-controlled Compatibility base, e.g. `https://your-space.signalwire.com/api/laml/2010-04-01` |
+| `SIGNALWIRE_PROJECT_ID` | Outbound project ID |
+| `SIGNALWIRE_TOKEN` | Outbound API token with Messaging scope |
+| `SIGNALWIRE_SIGNING_KEY` | Outbound project's webhook Signing Key |
+| `SIGNALWIRE_FROM` | Fixed canonical E.164 sender A |
+| `DEFAULT_TO` | Optional default destination B; otherwise pass `to` |
+| `ALLOWED_TO_NUMBERS` | Required comma-separated complete E.164 allowlist; each must use this receiver webhook/project |
+| `SIGNALWIRE_STATUS_WEBHOOK_URL` | Blank: origin + `/webhooks/signalwire/status`; exact external override otherwise |
+| `SIGNALWIRE_INBOUND_WEBHOOK_URL` | Blank: origin + `/webhooks/signalwire/inbound`; configure this on B |
+| `SIGNALWIRE_INBOUND_PROJECT_ID` | Blank: outbound project |
+| `SIGNALWIRE_INBOUND_SIGNING_KEY` | Blank: reuse outbound key only for the same project |
+| `SIGNALWIRE_VERIFY_WEBHOOKS` | `on`; only `on` or `off`. `off` is for isolated development/tests |
+| `TEST_TIMEOUT_MS` | `120000`; positive integer, capped at `600000` |
+| `SIGNALWIRE_REQUEST_TIMEOUT_MS` | `10000`; positive integer, capped at `600000` and remaining test time |
+| `REQUIRE_DELIVERED_STATUS` | `false`; only `true` or `false`; cannot be weakened per request |
+| `MAX_ACTIVE_TESTS` | `1`; positive integer, capped at `100` |
+| `MIN_SEND_INTERVAL_MS` | `60000`; positive integer shared by tests, checks and raw sends |
+| `DATA_DIR` | Repository-root `./data`; `/app/data` in Docker |
+
+Complete canonical numbers such as `+12025550101` are required. Spaces, country
+guessing, suffix matching, A-to-A sends and destinations outside the allowlist
+are rejected. Provider URLs must be HTTP(S), without embedded credentials or
+fragments; use HTTPS in deployment. HTTP support is for isolated local development.
+
+## HTTP API
+
+Use `Authorization: Bearer <API_KEY>` or `X-API-Key: <API_KEY>`. Query API keys
+are rejected. Only `/health` and the two provider-authenticated POST webhooks are
+public, including when the service has no API key configured.
+
+| Method/path | Input and response |
+| --- | --- |
+| `GET /` | Authenticated self-documenting JSON; configuration booleans and effective limits, no credentials |
+| `GET /health` | `200 {"ok":true,"time":"..."}`; process liveness, no provider call |
+| `POST /tests` | JSON `{to?, timeoutMs?}`; `{}` uses defaults; `201 {test}` after creation, without waiting for receipt |
+| `GET /tests` | `{tests}` newest first; `limit` defaults to 100, capped at 1000 |
+| `GET /tests/{id}` | `{test}`, or `404` for unknown/evicted IDs |
+| `GET /checks/round-trip` | `to`, `timeoutMs`, `waitTimeoutMs` query options; sends one test and waits; `200` only on pass |
+| `POST /messages` | Diagnostic JSON `{to?, body}`; `201 {message}` safe summary, no round-trip test |
+| `GET /messages` | Bounded safe inbound/outbound summaries; `limit` up to 1000 |
+| `GET /events` | Safe recent events newest first; `limit` defaults to 100, capped at 500 |
+| `POST /webhooks/signalwire/status` | Signed form POST; outbound project; `200` JSON acknowledgment |
+| `POST /webhooks/signalwire/inbound` | Signed form POST; receiving project; `200` empty messaging cXML |
+
+Unknown request fields, repeated query parameters, malformed JSON and bad types
+return `400`. JSON timeout values must be numbers, not strings. Timeout/wait
+values above 600000 ms are clamped and effective values returned. Query numbers
+must be positive decimal integers. Percent-encode a leading `+` in query phone
+numbers (`%2B`) or use curl `--data-urlencode`.
+
+Bodies are bounded at 256 KiB; send endpoints accept JSON and webhooks accept
+`application/x-www-form-urlencoded`. Raw text is bounded to 1600 UTF-16 code units
+and may incur multiple SMS segments depending on length and encoding. The
+[provider's status reference](https://signalwire.com/docs/compatibility-api/rest/messages/webhooks/sms-status-callback)
+describes segmentation and the difference between `sent` and `delivered`.
+Raw sends reject the reserved `swsms:v1:` body prefix so they cannot replay a
+test's receipt token.
+
+`GET /checks/round-trip` defaults both test and HTTP wait to `TEST_TIMEOUT_MS`.
+Both budgets start before sending and include creation time. The wait is capped
+at the test deadline. An early HTTP timeout returns `503`, `ok:false`, the actual
+`starting`/`pending` record, effective wait, and test ID. The same send continues
+being tracked; there is no hidden resend. Disconnecting also removes the waiter
+without cancelling the accepted send. Finished results return immediately.
+
+Other errors: `401` API auth; `403` destination/signature/project; `413` body too
+large; `415` content type; `429` cooldown or active-test limit with `Retry-After`;
+`502` provider rejection/invalid response/transport error; `504` provider timeout.
+Checks return `503` for a failed or still-pending test unless creation itself
+failed with `502`/`504`. Failures after test creation include `ok:false`, a safe
+reason and test ID. Upstream bodies and credentials are never returned.
+Ambiguous sends are marked uncertain and are **never retried automatically**.
+
+Test records expose `status`, `ok`, `reason`, `expected`, `missing`, effective
+requirements, the synthetic body, separate SIDs, timestamps, receipt latency,
+latest matched provider status, safe error code and event references. `missing`
+describes absent evidence; explicit failure remains visible even if nothing is
+missing. Terminal `ok`/`failed` records are immutable. Late facts go to diagnostics.
+
+## Manual acceptance and monitoring
+
+Export the service key independently, then use these commands. Do not use
+automatic retries for initial validation. Docker's example uses host port 3001;
+the commands below use local Node's port 3000.
+
+```sh
+export SMS_TESTER_API_KEY='replace-with-your-service-key'
+curl http://localhost:3000/health
+
+curl -X POST http://localhost:3000/tests \
+  -H "Authorization: Bearer ${SMS_TESTER_API_KEY}" \
+  -H 'Content-Type: application/json' -d '{}'
+
+curl -H "Authorization: Bearer ${SMS_TESTER_API_KEY}" \
+  http://localhost:3000/tests
+
+# Sends a SECOND SMS: wait for the active run and cooldown before running this.
+curl --max-time 135 \
+  -H "Authorization: Bearer ${SMS_TESTER_API_KEY}" \
+  'http://localhost:3000/checks/round-trip?timeoutMs=120000&waitTimeoutMs=120000'
+```
+
+For real acceptance verify outbound SID, a separate inbound SID, exact received
+body, expected A/B, valid signatures, outbound status callback, `status:ok`,
+`ok:true`, and empty `missing`. Compare provider and service logs on failure.
+A signed synthetic POST proves application handling, not live SMS delivery.
+
+Configure Uptime Kuma or another external HTTP monitor for
+`GET /checks/round-trip`, API key in a header, status **200** plus JSON `ok:true`.
+Start with five-minute checks and automatic retries **disabled**: continuous
+operation attempts roughly 288 sends/day or 8640 per 30 days before manual sends.
+Use monitor/proxy timeouts longer than the effective deadline plus a transport
+margin (e.g. 135 seconds for 120 seconds). Health probes must target `/health`.
+Do not configure multiple monitors/replicas to compete for the same run slot.
+
+## Docker
+
+The container repository is
+[`schumann/signalwire-sms-tester`](https://hub.docker.com/r/schumann/signalwire-sms-tester).
+Release tags `0.1.0`, `v0.1.0` and `latest` identify the initial release, with a
+full commit-SHA alias. Releases target Linux AMD64 and ARM64. Use the version tag
+for a fixed deployment; `latest` advances only for tagged releases.
+
+```sh
+docker pull schumann/signalwire-sms-tester:0.1.0
+docker run -d --name signalwire-sms-tester --restart unless-stopped \
+  -p 127.0.0.1:3001:3000 --env-file .env \
+  -v signalwire-sms-tester-data:/app/data \
+  schumann/signalwire-sms-tester:0.1.0
+```
+
+The port above assumes an HTTPS proxy on the Docker host. Local source builds:
+
+```sh
+docker build -t signalwire-sms-tester .
+docker run --rm --name signalwire-sms-tester \
+  -p 3001:3000 --env-file .env \
+  -v signalwire-sms-tester-data:/app/data \
+  signalwire-sms-tester
+```
+
+The multi-stage Node 22.23.4 Alpine-to-scratch image runs as UID/GID **1000:1000**,
+with Node, updated musl/C++ runtime libraries and CA bundle. Its base tag/digest
+are pinned and OS/library package metadata is retained for scanners. The final image has no
+shell or npm; its healthcheck invokes Node directly. Named volumes initialize
+with `/app/data` ownership; host bind mounts must allow UID/GID 1000 to write.
+Port 3001 and the SMS-specific image/volume allow coexistence with a calling tester.
+Point the public HTTPS proxy at this container and keep canonical URLs accurate.
+
+An opt-in smoke test creates and removes its own container/volume, uses a synthetic
+service API key, and has **no provider credentials**. It checks liveness,
+authenticated reads, UID/GID, mounted writes/persisted logs, HTTPS certificate
+validation to nodejs.org, absence of a shell, and SIGTERM exit 0:
+
+```sh
+docker build -t signalwire-sms-tester:local .
+npm run test:container
+# Optional: node scripts/container-smoke.js <another-locally-built-image>
+```
+
+## State, logs and shutdown
+
+Deploy **one process/replica**. Send reservations, cooldown and correlation are
+in memory. There are at most 1000 retained terminal tests plus active tests, 1000
+message summaries, 500 recent events, 64 per-test event references, 64 staged
+statuses, 128 status dedup keys per test, and 5000 inbound dedup entries. Terminal
+state/message/dedup retention is 24 hours; active tests are never evicted. An
+unref'ed sweep expires starting/pending tests even without API polling.
+
+Safe structured events go to stdout and `${DATA_DIR}/events.jsonl`. Appends and
+rotation are serialized; about 50 MiB rotates to a single `events.jsonl.1`
+backup. Event fields avoid arbitrary webhook/provider payloads. Credentials,
+auth/signature headers and message bodies are redacted before stdout and disk.
+Unrelated/raw SMS bodies are not retained in message summaries. Authenticated
+test inspection includes only the generated synthetic test body.
+
+JSONL is an **audit log, not a database**. It is not restored at startup. Restarts
+lose pending tests and correlation; mounted logs survive. Schedule deployments
+between checks. SIGTERM/SIGINT stops new sends and drains connections/sends for
+up to 10 seconds, closes connections, flushes queued writes, then exits (12-second
+hard shutdown guard). A monitor interrupted by deployment should inspect logs
+and allow the cooldown before deliberately starting a new test.
+
+## Troubleshooting
+
+| Evidence | Check |
+| --- | --- |
+| No outbound SID | Configuration, Messaging scope, API URL, credential rejection, transport/timeout uncertainty |
+| Status callback but no inbound | B's SMS capability, route/delivery, messaging handler URL and POST/cXML mode |
+| Inbound but no matched receipt | Exact body/nonce, complete A/B, receiving project, direction/media, deadline |
+| `403` webhook | Project Signing Key, correct project, exact public scheme/host/path/query, proxy rewrites |
+| Receipt present but missing status | Outbound callback reachability and signing configuration |
+| Strict mode waits for `delivered` | Route may have missing/delayed delivery reports despite content receipt |
+| `429` | Existing active test or shared cooldown; inspect `Retry-After`, avoid automatic retries |
+| Missing logs | DATA_DIR permissions or storage errors; look for `log_error` on stdout |
+
+## Development and releases
+
+`createApp(config, store, {fetch, now})` does not listen on import. Tests supply
+isolated configuration/temp logs, fake provider fetch and controllable clocks.
+Default checks never read live `.env`, need external network or send real SMS;
+HTTP integration tests use local ephemeral loopback ports.
+
+```sh
+npm run check
+npm test
+```
+
+Use `package.json` as the version source, Conventional Commits and SemVer tags
+`vMAJOR.MINOR.PATCH`. The `0.x` interface is unstable; minor versions may break
+compatibility. The current local branch is `master`; no remote/CI platform is
+configured. Wire the commands above into the actual CI platform when chosen.
+The initial release is `0.1.0`, tagged `v0.1.0`. Registry publication is a separate
+action from pushing the Git repository. For subsequent releases update the changelog and use:
+
+```sh
+npm run check
+npm test
+npm version patch -m 'chore(release): %s'  # or minor / major
+```
+
+Use an SMS-specific registry path and protected registry credentials/release tags.
+Default-branch builds may publish full immutable SHA tags; **latest is reserved
+for tagged releases**. At the exact tagged checkout, publish the SHA, version and
+latest from one Buildx invocation so aliases identify the same output:
+
+```sh
+# At the exact release tag, set COMMIT_SHA and VERSION_TAG first.
+IMAGE=schumann/signalwire-sms-tester
+docker buildx build --platform linux/amd64,linux/arm64 \
+  --provenance=mode=max --sbom=true --push \
+  -t "${IMAGE}:${COMMIT_SHA}" -t "${IMAGE}:${VERSION_TAG}" \
+  -t "${IMAGE}:latest" .
+```
+
+Use a dedicated Buildx runner where possible. Validate runtime libraries and HTTPS
+for every target architecture before publication. Building locally does not
+authorize publishing or provisioning provider resources. See
+[IMPLEMENTATION.md](IMPLEMENTATION.md) for checks actually run and remaining live setup.

@@ -1,0 +1,16 @@
+.git
+.env
+.env.*
+!.env.example
+data
+node_modules
+npm-debug.log*
+.DS_Store
+test
+test-support
+scripts
+coverage
+*.md
+.agents
+.codex
+.aws

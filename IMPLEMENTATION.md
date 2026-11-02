@@ -1,0 +1,95 @@
+# Implementation handoff — 2026-11-02
+
+The service described by `HANDOVER.md` is implemented as an independent Node.js
+ES module project, version **0.1.0**. The original handover remains the brief;
+`README.md` describes the delivered behavior and operator setup.
+
+## Delivered
+
+- Dependency-free Compatibility Messages API creation with bounded transport and
+  response reads, no redirects/retries, safe errors and uncertain-outcome labels.
+- Authenticated test/check/raw-send/inspection APIs, complete destination matching,
+  fixed provider configuration, shared cooldown and atomic active-test reservation.
+- Separate project-aware signed inbound/status webhooks. Exact generated body,
+  numbers and deadline are required for receipt; status Body never proves receipt.
+- Early callback staging/reconciliation, duplicate handling, immutable terminal
+  results, expiry without polling, optional delivered requirement and explicit
+  failed/undelivered outcomes.
+- Independent HTTP wait budgets, disconnect cleanup and continued tracking of
+  accepted sends. Diagnostic raw bodies cannot replay the reserved test format.
+- Bounded records/deduplication/event references, temporary-test isolation,
+  redacted serialized rotating JSONL logs and bounded signal shutdown.
+- Configuration template, API/provider/monitor setup, scratch Docker deployment,
+  smoke-test script, MIT license, agent guidance and release conventions.
+
+## Verification actually completed
+
+| Check | Result |
+| --- | --- |
+| `npm run check` | Passed on local Node 24.22.2 |
+| `npm test` | **40/40 passed**, local Node 24.22.2 |
+| Same mocked suite in original local container | **40/40 passed**, Node 22.22.3, source mounted read-only with temporary `/tmp`; refreshed release validation is recorded below |
+| `docker build --platform linux/arm64` | Passed; local image `signalwire-sms-tester:local` |
+| `docker build --platform linux/amd64` | Passed; local image `signalwire-sms-tester:local-amd64` |
+| ARM64 smoke test | Passed natively on the local Docker ARM64 host |
+| AMD64 smoke test | Passed under local Docker emulation; not a native x64 host test |
+| Live SignalWire SMS | **Not performed**; no real credentials/numbers/receiver setup supplied |
+
+Both scratch images ran Node 22.22.3 as UID/GID 1000:1000. Smoke validation checked
+unconfigured-provider `/health`, authenticated `GET /`, unauthenticated rejection,
+the actual shell-free Docker healthcheck command, named-volume writes, persisted
+JSONL across a second container, absence of `/bin/sh`, validated HTTPS access to
+nodejs.org, SIGTERM exit 0 and absence of send events. Smoke containers and their
+temporary volumes were removed. Local images remain available; nothing was pushed.
+
+The mocked tests use no live `.env`, real provider transport or SMS. They cover
+body/number/project mismatches, status-only false-pass prevention, callbacks in
+both orders and before the API response, strict delivery, explicit failures,
+SID conflicts, deadlines/late traffic, old tokens, duplicates, separate receiver
+keys, fixed/encoded callback URLs, both signature headers and a fixed independent
+signature vector. They also exercise API validation, no-send-on-rejection,
+concurrency/cooldown, short waits during/after creation, client disconnect,
+provider ambiguity/timeouts, bounded retention, redaction/rotation and empty cXML.
+
+## Remaining operator acceptance
+
+1. Fill `.env` with a strong service key, outbound project/Messaging-scoped token,
+   project Signing Keys, owned distinct SMS-capable A/B numbers, allowlist and
+   reachable canonical HTTPS URLs. Verify route/account eligibility.
+2. Expose the service and configure B's **messaging Compatibility/cXML POST**
+   handler to the exact inbound URL. Record the dashboard labels/settings used.
+   A separate receiver project needs its own ID/Signing Key, not an API token.
+3. Run one manual SMS test without automatic retries. Verify distinct outbound
+   and inbound SIDs, exact body/A/B, valid signatures, outbound status, `ok:true`
+   and no missing evidence. This actual route remains unverified by mocks.
+4. Configure the external monitor with header authentication, five-minute initial
+   interval, retries off and sufficient HTTP/proxy timeout. Use `/health` for probes.
+
+One process/replica is required. In-memory state is lost at restart; JSONL is only
+an audit log. Deploy between checks and persist `/app/data`. The remaining live
+check proves only this configured SignalWire A-to-B path.
+
+## Initial release preparation
+
+The user authorized Docker Hub publication to
+`schumann/signalwire-sms-tester`. Release `0.1.0` uses local Git tag `v0.1.0`,
+with image aliases `0.1.0`, `v0.1.0`, `latest` and the full release commit SHA.
+The release targets Linux AMD64 and ARM64, with SBOM and max-mode provenance.
+
+Before publication the Docker base was changed from the previously tested
+Node 22.22.3 image to security-patched **Node 22.23.4 / Alpine 3.24**, pinned at
+`sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914`.
+Runtime musl/C++/certificate libraries are upgraded before copying, and the
+final image retains OS/library package metadata for container scanners.
+
+Release validation passed: syntax checks and 40/40 mocked tests on local
+Node 24.22.2 and the updated Node 22.23.4 container runtime. Rebuilt Linux ARM64
+and AMD64 candidates passed the full existing container smoke script (AMD64
+under emulation), including HTTPS validation, UID/GID, healthcheck, mounted log
+persistence and clean shutdown. No live provider configuration was used.
+
+The repository still has no remote/CI platform configured; publishing the
+container does not push the Git source. No provider provisioning, live SMS sends
+or phone-number changes are part of publication. Calling-project compatibility
+was checked against its template/source, without reading or copying its live
+`.env`; the exact migration differences are now in `README.md`.
