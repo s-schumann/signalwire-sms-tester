@@ -6,10 +6,11 @@ export const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 export const MAX_TIMEOUT_MS = 600_000;
 export const MAX_BODY_BYTES = 256 * 1024;
 export const MAX_MESSAGE_CHARS = 1600;
-export const isE164 = value => typeof value === 'string' && /^\+[1-9]\d{1,14}$/.test(value);
-export const isAlphanumericSenderId = value => typeof value === 'string' && value.length >= 1 && value.length <= 11 &&
-  /[A-Za-z]/.test(value) && !/[^A-Za-z0-9 ]/.test(value) && value === value.trim();
-export const isSmsSender = value => isE164(value) || isAlphanumericSenderId(value);
+export const isE164 = value => typeof value === 'string' && /^\+[1-9][0-9]{1,14}$/.test(value) && value === value.trim();
+// Equivalent to [\w.\-+*,#]{1,11}, with whole-string validation (no final newline).
+export const isSenderId = value => typeof value === 'string' && value.length >= 1 && value.length <= 11 &&
+  !/[^A-Za-z0-9_.+*,#-]/.test(value);
+export const isSmsSender = value => isE164(value) || isSenderId(value);
 export const isSid = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
 
 // Intentionally small dotenv grammar: single-line values, quotes, and comments.

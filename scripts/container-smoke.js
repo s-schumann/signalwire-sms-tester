@@ -22,7 +22,10 @@ try {
     }
     assert.equal(health.status, 200); assert.equal((await health.json()).ok, true);
     const index = await fetch('http://127.0.0.1:3000/', {headers:{authorization:'Bearer synthetic-container-test-key'}});
-    assert.equal(index.status, 200); assert.equal((await index.json()).configuration.sendConfigured, false);
+    assert.equal(index.status, 200);
+    const info = await index.json();
+    assert.equal(info.configuration.sendConfigured, false);
+    assert.equal(info.version, JSON.parse(await readFile('package.json', 'utf8')).version);
     assert.equal((await fetch('http://127.0.0.1:3000/')).status, 401);
     await writeFile('/app/data/write-probe', 'ok');
     assert.equal(await readFile('/app/data/write-probe','utf8'),'ok');
@@ -31,7 +34,7 @@ try {
     await assert.rejects(access('/bin/sh'), {code:'ENOENT'});
     const https = await fetch('https://nodejs.org/', {signal:AbortSignal.timeout(10000)});
     assert.equal(https.ok,true); await https.body.cancel();
-    console.log(JSON.stringify({node:process.versions.node,arch:process.arch,uid:process.getuid(),health:true,authenticatedRead:true,mountedWrite:true,httpsCertificateValidation:true,shellAbsent:true}));
+    console.log(JSON.stringify({version:info.version,node:process.versions.node,arch:process.arch,uid:process.getuid(),health:true,authenticatedRead:true,mountedWrite:true,httpsCertificateValidation:true,shellAbsent:true}));
   `);
   console.log(result);
   const healthcheck = JSON.parse(docker('inspect', '--format', '{{json .Config.Healthcheck.Test}}', name));
@@ -43,9 +46,12 @@ try {
     import assert from 'node:assert/strict';
     import {readFile} from 'node:fs/promises';
     const rows=(await readFile('/app/data/events.jsonl','utf8')).trim().split('\n').map(s=>JSON.parse(s));
-    assert.ok(rows.some(row=>row.type==='service_started'));
+    const startup=rows.find(row=>row.type==='service_started');
+    assert.equal(startup.version,JSON.parse(await readFile('package.json','utf8')).version);
+    assert.equal(startup.nodeVersion,process.versions.node);
+    assert.equal(startup.requireDeliveredStatus,false);
     assert.ok(!rows.some(row=>row.type==='test_started'||row.type==='raw_send_started'));
-    console.log('Persistent event log verified; no SMS sends; SIGTERM exit 0');
+    console.log('Versioned startup and persistent event log verified; no SMS sends; SIGTERM exit 0');
   `));
 } finally {
   try { docker('rm', '-f', name); } catch { /* May not have started. */ }

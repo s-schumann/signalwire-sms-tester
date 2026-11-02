@@ -65,7 +65,7 @@ names. Missing `API_KEY` disables operational APIs with `503`. Invalid numeric,
 boolean, verification-mode or dotenv syntax prevents startup.
 
 The sender and destination must be operator-controlled and usable on the intended
-SMS route. Sender A may be an SMS-enabled E.164 number or an alphanumeric sender ID;
+SMS route. Sender A may be an SMS-enabled E.164 number or a sender ID;
 destination B must be an SMS-enabled E.164 number. Numeric A and B must differ.
 Confirm Messaging permissions, destination eligibility and applicable account
 requirements using the provider's [sending guide](https://signalwire.com/docs/compatibility-api/guides/send-sms).
@@ -80,7 +80,7 @@ you intend to reuse. The calling tester's `.env` does **not** work unchanged:
 | --- | --- |
 | `SIGNALWIRE_BASE_URL`, `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_SIGNING_KEY` | Reusable for the same outbound project |
 | `SIGNALWIRE_TOKEN` | Reusable only if its API token has **Messaging** scope; Voice scope alone is insufficient |
-| `SIGNALWIRE_FROM` | SMS-enabled E.164 sender number or alphanumeric sender ID usable on the intended route |
+| `SIGNALWIRE_FROM` | SMS-enabled E.164 sender number or sender ID usable on the intended route |
 | `DEFAULT_TO`, `ALLOWED_TO_NUMBERS` | Use distinct receiving **SignalWire SMS** number B; the calling tester's Placetel destination is not this receiver; an empty allowlist blocks sends |
 | `PUBLIC_BASE_URL`, `SIGNALWIRE_STATUS_WEBHOOK_URL` | Point at the SMS deployment; clear an old status override to use the new origin, or set the exact new external status URL |
 | `SIGNALWIRE_VERIFY_WEBHOOKS=auto` | Change to **`on`**; this service accepts only `on`/`off` and never falls back from Signing Key to API token |
@@ -165,7 +165,7 @@ when preceded by whitespace (quote values containing literal comment syntax).
 | `SIGNALWIRE_PROJECT_ID` | Outbound project ID |
 | `SIGNALWIRE_TOKEN` | Outbound API token with Messaging scope |
 | `SIGNALWIRE_SIGNING_KEY` | Outbound project's webhook Signing Key |
-| `SIGNALWIRE_FROM` | Fixed E.164 sender number or alphanumeric sender ID A |
+| `SIGNALWIRE_FROM` | Fixed E.164 sender number or 1–11 character sender ID A (see below) |
 | `DEFAULT_TO` | Optional default destination B; otherwise pass `to` |
 | `ALLOWED_TO_NUMBERS` | Required comma-separated complete E.164 allowlist; each must use this receiver webhook/project |
 | `SIGNALWIRE_STATUS_WEBHOOK_URL` | Blank: origin + `/webhooks/signalwire/status`; exact external override otherwise |
@@ -175,7 +175,7 @@ when preceded by whitespace (quote values containing literal comment syntax).
 | `SIGNALWIRE_VERIFY_WEBHOOKS` | `on`; only `on` or `off`. `off` is for isolated development/tests |
 | `TEST_TIMEOUT_MS` | `120000`; positive integer, capped at `600000` |
 | `SIGNALWIRE_REQUEST_TIMEOUT_MS` | `10000`; positive integer, capped at `600000` and remaining test time |
-| `REQUIRE_DELIVERED_STATUS` | `false`; only `true` or `false`; cannot be weakened per request |
+| `REQUIRE_DELIVERED_STATUS` | `false`: creation + recognized outbound status callback + exact inbound receipt; `true`: also require a matching `delivered` callback; cannot be weakened per request |
 | `MAX_ACTIVE_TESTS` | `1`; positive integer, capped at `100` |
 | `MIN_SEND_INTERVAL_MS` | `60000`; positive integer shared by tests, checks and raw sends |
 | `DATA_DIR` | Repository-root `./data`; `/app/data` in Docker |
@@ -183,18 +183,25 @@ when preceded by whitespace (quote values containing literal comment syntax).
 Destinations require complete canonical numbers such as `+12025550101`. Phone
 numbers with spaces, country guessing, suffix matching, A-to-A sends and
 destinations outside the allowlist are rejected. `SIGNALWIRE_FROM` additionally
-accepts alphanumeric IDs: 1–11 ASCII letters, digits and internal spaces, with
-at least one letter. For example:
+accepts sender IDs of 1–11 ASCII letters, digits or `_ . - + * , #`. Numeric-only
+and symbol-only IDs are accepted; spaces and other characters are rejected.
+This implements the sender pattern (using full-string matching):
+
+```regex
+^(?:\+[1-9][0-9]{1,14}|[\w.\-+*,#]{1,11})$
+```
+
+For example:
 
 ```dotenv
-SIGNALWIRE_FROM=MyBrand
+SIGNALWIRE_FROM=My-Brand
 ```
 
 The configured sender is sent unchanged and matched exactly, including case, in
-both status and inbound callbacks. Alphanumeric IDs are never allowed as `to`
-or allowlist entries. Provider/route acceptance of an ID is separate from this
+both status and inbound callbacks. Destinations and allowlist entries must still
+be canonical E.164 numbers. Provider/route acceptance of an ID is separate from this
 service's format validation; a rejected send or rewritten sender cannot produce
-a pass. No live alphanumeric route has been verified by the automated checks.
+a pass. No live sender-ID route has been verified by the automated checks.
 
 Provider URLs must be HTTP(S), without embedded credentials or
 fragments; use HTTPS in deployment. HTTP support is for isolated local development.
@@ -295,16 +302,16 @@ Do not configure multiple monitors/replicas to compete for the same run slot.
 
 The container repository is
 [`schumann/signalwire-sms-tester`](https://hub.docker.com/r/schumann/signalwire-sms-tester).
-The current patch release is `0.1.3`, with tags `0.1.3`, `v0.1.3`, `latest` and a
+The current patch release is `0.1.4`, with tags `0.1.4`, `v0.1.4`, `latest` and a
 full commit-SHA alias. Releases target Linux AMD64 and ARM64. Use the version tag
 for a fixed deployment; `latest` advances only for tagged releases.
 
 ```sh
-docker pull schumann/signalwire-sms-tester:0.1.3
+docker pull schumann/signalwire-sms-tester:0.1.4
 docker run -d --name signalwire-sms-tester --restart unless-stopped \
   -p 127.0.0.1:3001:3000 --env-file .env \
   -v signalwire-sms-tester-data:/app/data \
-  schumann/signalwire-sms-tester:0.1.3
+  schumann/signalwire-sms-tester:0.1.4
 ```
 
 The port above assumes an HTTPS proxy on the Docker host. Local source builds:
@@ -351,6 +358,11 @@ backup. Event fields avoid arbitrary webhook/provider payloads. Credentials,
 auth/signature headers and message bodies are redacted before stdout and disk.
 Unrelated/raw SMS bodies are not retained in message summaries. Authenticated
 test inspection includes only the generated synthetic test body.
+
+The startup event `service_started` includes `version` from `package.json`
+(also the container release version), `nodeVersion`, `port`, `verifyWebhooks`
+and `requireDeliveredStatus`, so the deployed version and effective delivery
+requirement are visible in logs.
 
 JSONL is an **audit log, not a database**. It is not restored at startup. Restarts
 lose pending tests and correlation; mounted logs survive. Schedule deployments

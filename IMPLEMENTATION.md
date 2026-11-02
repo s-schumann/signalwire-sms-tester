@@ -242,3 +242,30 @@ round-trip test. If status evidence remains missing, inspect `webhook_rejected`,
 delivery attempt. The production callback failure is not yet confirmed fixed.
 Browser access remains stopped, no deployment/provider settings were changed,
 and no Git source was pushed to a remote.
+
+## Sender symbols and startup version — 0.1.4
+
+The sender validator now follows the user's requested E.164-or-sender-ID
+pattern. IDs allow 1–11 ASCII letters/digits and `_ . - + * , #`, including
+numeric-only and symbol-only values; spaces are no longer accepted. Outbound
+form encoding preserves the sender exactly, and both webhook routes retain
+case-sensitive exact correlation. Destination validation remains E.164-only
+and now also explicitly rejects trailing line terminators.
+
+`service_started` now logs `version` from `package.json` (the container release
+version), `nodeVersion` and the effective `requireDeliveredStatus` setting next
+to the existing port/verification fields. The container smoke test verifies the
+startup metadata in persisted logs against the image's own package/runtime.
+
+The user confirmed the existing `REQUIRE_DELIVERED_STATUS` flag covers optional
+delivery reports. Its evaluator/default are unchanged: `false` accepts creation,
+a recognized outbound status callback and matching inbound receipt; `true` also
+requires a matching `delivered` callback. Added mocked HTTP coverage verifies the
+held client completes in both modes at the appropriate evidence transition.
+
+Syntax checks and all **54** mocked tests pass on local Node 24.22.2. The initial
+sandbox test attempt could not bind loopback ports (`EPERM`); rerunning with
+local socket access passed. Tests never load live `.env` or contact a provider.
+Browser access remains stopped. Publication uses the previously authorized
+`schumann/signalwire-sms-tester` repository; no provider/deployment setting is
+changed and no live SMS is sent by these checks.

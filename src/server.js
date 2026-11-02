@@ -302,7 +302,10 @@ async function main() {
   await logger.ready;
   const store = new Store(config, logger);
   const app = createApp(config, store);
-  app.server.listen(config.port, config.host, () => logger.log('service_started', { port: config.port, verifyWebhooks: config.verifyWebhooks }));
+  app.server.listen(config.port, config.host, () => logger.log('service_started', {
+    version, nodeVersion: process.versions.node, port: config.port,
+    verifyWebhooks: config.verifyWebhooks, requireDeliveredStatus: config.requireDeliveredStatus,
+  }));
   let stopping = false;
   for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => {
     if (stopping) return;

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createConfig, loadDotEnv, sendConfigurationErrors, webhookConfigurationErrors, isE164, isAlphanumericSenderId, isSmsSender } from '../src/config.js';
+import { createConfig, loadDotEnv, sendConfigurationErrors, webhookConfigurationErrors, isE164, isSenderId, isSmsSender } from '../src/config.js';
 import { ENV } from '../test-support/helpers.js';
 
 test('dotenv supports blank, quoted, comments and existing environment without exposing values', async t => {
@@ -22,27 +22,31 @@ test('dotenv supports blank, quoted, comments and existing environment without e
 test('configuration defaults, caps and strict values', () => {
   const config = createConfig(ENV, { root: '/tmp/isolated' });
   assert.equal(config.testTimeoutMs, 120000);
+  assert.equal(config.requireDeliveredStatus, false);
+  assert.equal(createConfig({ ...ENV, REQUIRE_DELIVERED_STATUS: 'false' }).requireDeliveredStatus, false);
+  assert.equal(createConfig({ ...ENV, REQUIRE_DELIVERED_STATUS: 'true' }).requireDeliveredStatus, true);
   assert.equal(config.dataDir, '/tmp/isolated/data');
   assert.deepEqual(sendConfigurationErrors(config), []);
   assert.equal(createConfig({ ...ENV, TEST_TIMEOUT_MS: '700000' }).testTimeoutMs, 600000);
   for (const [name, value] of [['TEST_TIMEOUT_MS', 'NaN'], ['MIN_SEND_INTERVAL_MS', '0'], ['PORT', '-1'], ['SIGNALWIRE_REQUEST_TIMEOUT_MS', '1.5'], ['MAX_ACTIVE_TESTS', 'Infinity'], ['REQUIRE_DELIVERED_STATUS', 'yes'], ['SIGNALWIRE_VERIFY_WEBHOOKS', 'false']]) {
     assert.throws(() => createConfig({ ...ENV, [name]: value }), new RegExp(name));
   }
-  for (const value of ['2025550100', '+1 2025550100', ' +12025550100', '+01234567', '+1234567890123456']) assert.equal(isE164(value), false);
+  for (const value of ['2025550100', '+1 2025550100', ' +12025550100', '+01234567', '+1234567890123456', '+12025550100\n', '+12025550100\r']) assert.equal(isE164(value), false);
 });
 
-test('sender may be E.164 or a short alphanumeric ID; destinations remain E.164', () => {
-  for (const from of ['A', 'Brand123', 'MixedCase', 'My Brand2', 'Brand123456']) {
-    assert.equal(isAlphanumericSenderId(from), true, from);
+test('sender follows the requested E.164 or 1–11 ASCII sender-ID grammar; destinations remain E.164', () => {
+  for (const from of ['A', 'Brand123', 'MixedCase', 'Brand-1', 'A_.-+*,#9', '12345678901', '_', '.', '-', '+', '*', ',', '#', '+Brand', '+01234567']) {
+    assert.equal(isSenderId(from), true, from);
     assert.equal(isSmsSender(from), true, from);
     assert.deepEqual(sendConfigurationErrors(createConfig({ ...ENV, SIGNALWIRE_FROM: from })), []);
   }
   assert.equal(isSmsSender(ENV.SIGNALWIRE_FROM), true);
-  for (const from of ['', '1234567890', 'Brand1234567', 'Brand-1', 'Brand_1', '+Brand', 'Älpha', ' Brand', 'Brand ', 'Brand\n', 'Brand\t', null, 123]) {
-    assert.equal(isAlphanumericSenderId(from), false, String(from));
+  assert.equal(isSmsSender('+123456789012345'), true);
+  for (const from of ['', '123456789012', 'Brand1234567', '+1234567890123456', 'Älpha', 'My Brand2', 'Brand/', 'Brand:', 'Brand@', ' Brand', 'Brand ', 'Brand\n', 'Brand\t', null, 123]) {
+    assert.equal(isSenderId(from), false, String(from));
     assert.equal(isSmsSender(from), false, String(from));
   }
-  for (const from of ['1234567890', 'Brand1234567', 'Brand-1']) assert.ok(sendConfigurationErrors(createConfig({ ...ENV, SIGNALWIRE_FROM: from })).includes('SIGNALWIRE_FROM'));
+  for (const from of ['123456789012', 'Brand1234567', 'My Brand2']) assert.ok(sendConfigurationErrors(createConfig({ ...ENV, SIGNALWIRE_FROM: from })).includes('SIGNALWIRE_FROM'));
   assert.ok(sendConfigurationErrors(createConfig({ ...ENV, DEFAULT_TO: 'Brand123' })).includes('DEFAULT_TO'));
   assert.ok(sendConfigurationErrors(createConfig({ ...ENV, ALLOWED_TO_NUMBERS: 'Brand123' })).includes('ALLOWED_TO_NUMBERS'));
 });

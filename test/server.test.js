@@ -49,9 +49,9 @@ test('generated SMS, signed callbacks, empty cXML and exact evidence produce a p
   assert.deepEqual(new Set(messages.messages.map(m => m.direction)), new Set(['inbound', 'outbound']));
 });
 
-test('alphanumeric sender works end to end for signed form and verification-off JSON callbacks', async t => {
+test('sender-ID symbols work end to end for signed form and verification-off JSON callbacks', async t => {
   for (const format of ['form', 'json']) {
-    const from = 'My Brand2';
+    const from = 'A_.-+*,#9';
     let sent;
     const h = await setup(t, { server: true,
       env: { SIGNALWIRE_FROM: from, SIGNALWIRE_VERIFY_WEBHOOKS: format === 'json' ? 'off' : 'on' },
@@ -66,10 +66,10 @@ test('alphanumeric sender works end to end for signed form and verification-off 
       ? h.webhook(kind, payload, { query })
       : h.post(`/webhooks/signalwire/${kind}${query}`, payload, { headers: { authorization: '' } });
     const query = `?test_id=${run.id}`;
-    await deliver('status', statusForm({ From: 'MY BRAND2' }), query);
+    await deliver('status', statusForm({ From: 'a_.-+*,#9' }), query);
     assert.equal(h.store.get(run.id).expected.signalWireStatus, false);
     await deliver('status', statusForm({ From: from }), query);
-    for (const [index, wrongFrom] of ['MY BRAND2', 'XMy Brand2', '+12025550999'].entries()) {
+    for (const [index, wrongFrom] of ['a_.-+*,#9', 'XA_.-+*,#9', '+12025550999'].entries()) {
       const receipt = await deliver('inbound', inboundForm(run, { From: wrongFrom, MessageSid: `wrong-sender-${index}` }));
       assert.equal(receipt.status, 200);
       assert.equal(h.store.get(run.id).expected.inboundSmsMatched, false);
@@ -339,6 +339,43 @@ test('held JSON check stays pending after inbound and completes on a status call
   assert.equal(result.test.errorCode, null);
   assert.deepEqual(result.test.missing, []);
   assert.equal(h.store.listenerCount(id), 0);
+});
+
+test('held check accepts queued/sent plus receipt, and waits for delivered only when configured', async t => {
+  for (const requireDelivered of [false, true]) {
+    const sent = deferred();
+    const h = await setup(t, { server: true,
+      env: { REQUIRE_DELIVERED_STATUS: String(requireDelivered) },
+      fetch: async (_, init) => {
+        sent.resolve(new URL(new URLSearchParams(init.body).get('StatusCallback')));
+        return providerResponse();
+      },
+    });
+    const waiting = h.request('/checks/round-trip?timeoutMs=1000&waitTimeoutMs=1000');
+    const callback = await sent.promise;
+    const id = callback.searchParams.get('test_id');
+    await Promise.all([...h.app.operations]);
+    const run = h.store.get(id);
+    for (const status of ['queued', 'sent']) {
+      assert.equal((await h.webhook('status', statusForm({ MessageStatus: status }), { query: callback.search })).status, 200);
+      assert.equal(h.store.get(id).ok, false);
+    }
+    assert.equal((await h.webhook('inbound', inboundForm(run))).status, 200);
+    if (requireDelivered) {
+      assert.equal(h.store.get(id).status, 'pending');
+      assert.deepEqual(h.store.get(id).missing, ['signalWireDelivered']);
+      assert.equal(h.store.listenerCount(id), 1);
+      assert.equal((await h.webhook('status', statusForm({ MessageStatus: 'delivered' }), { query: callback.search })).status, 200);
+    }
+    const response = await waiting;
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.test.missing, []);
+    assert.equal(result.test.request.requireDeliveredStatus, requireDelivered);
+    assert.equal(result.test.latestProviderStatus, requireDelivered ? 'delivered' : 'sent');
+    assert.equal(h.store.listenerCount(id), 0);
+  }
 });
 
 test('rejected webhooks log bounded metadata and reasons without payloads, signatures or query secrets', async t => {

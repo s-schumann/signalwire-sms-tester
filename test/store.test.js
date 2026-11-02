@@ -51,6 +51,20 @@ test('wrong body, nonce, version, numbers, project, direction, media never match
   assert.equal(store.get(run.id).ok, true);
 });
 
+test('delivery-optional mode accepts each successful outbound progress state plus actual inbound receipt', async t => {
+  for (const status of ['queued', 'sending', 'sent']) {
+    const { store } = await setup(t, { env: { REQUIRE_DELIVERED_STATUS: 'false' } });
+    const run = store.createTest(B, 1000);
+    store.markCreated(run.id, 'outbound-1');
+    store.receiveStatus(statusEvent(run, { status }));
+    assert.deepEqual(store.get(run.id).missing, ['inboundSmsMatched']);
+    store.receiveInbound(inboundEvent(run));
+    assert.equal(store.get(run.id).ok, true);
+    assert.equal(store.get(run.id).latestProviderStatus, status);
+    assert.equal(store.get(run.id).request.requireDeliveredStatus, false);
+  }
+});
+
 test('strict delivery mode waits for delivered; inbound alone misses callback evidence', async t => {
   const { store } = await setup(t, { env: { REQUIRE_DELIVERED_STATUS: 'true' } });
   const run = store.createTest(B, 1000);

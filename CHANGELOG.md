@@ -3,6 +3,17 @@
 Changes follow Semantic Versioning. The 0.x interface is unstable; minor
 versions may introduce breaking changes.
 
+## 0.1.4 — 2026-11-02
+
+- Accept the requested sender grammar: E.164 or 1–11 ASCII letters/digits and
+  `_ . - + * , #`, including numeric-only IDs. Spaces are no longer accepted.
+- Preserve sender symbols through outbound encoding and exact webhook matching;
+  destinations remain strict E.164, including rejection of trailing newlines.
+- Include software/container version, Node version and effective delivery mode
+  in `service_started` logs.
+- Retain `REQUIRE_DELIVERED_STATUS=false` as the default; add HTTP coverage for
+  queued/sent plus inbound receipt and strict mode waiting for `delivered`.
+
 ## 0.1.3 — 2026-11-02
 
 - Accept optional `ErrorCode: null` and `ErrorMessage: null` in JSON callbacks;

@@ -8,7 +8,7 @@ ES modules, built-ins only. `package.json` is the version source.
   `.env` or send an SMS in automated tests.
 - A pass needs API creation, a verified outbound status callback, and the exact
   unique body received through the verified inbound webhook. DLR alone cannot pass.
-- Keep exact sender identity matching (E.164 or alphanumeric ID), strict E.164
+- Keep exact sender identity matching (E.164 or sender ID), strict E.164
   destination allowlists, fixed sender,
   provider-controlled configuration, deadline enforcement and immutable terminal
   outcomes. Preserve early-callback handling and separate inbound/outbound SIDs.
