@@ -354,16 +354,16 @@ Do not configure multiple monitors/replicas to compete for the same run slot.
 
 The container repository is
 [`schumann/signalwire-sms-tester`](https://hub.docker.com/r/schumann/signalwire-sms-tester).
-The current patch release is `0.1.5`, with tags `0.1.5`, `v0.1.5`, `latest` and a
+The current patch release is `0.1.6`, with tags `0.1.6`, `v0.1.6`, `latest` and a
 full commit-SHA alias. Releases target Linux AMD64 and ARM64. Use the version tag
 for a fixed deployment; `latest` advances only for tagged releases.
 
 ```sh
-docker pull schumann/signalwire-sms-tester:0.1.5
+docker pull schumann/signalwire-sms-tester:0.1.6
 docker run -d --name signalwire-sms-tester --restart unless-stopped \
   -p 127.0.0.1:3001:3000 --env-file .env \
   -v signalwire-sms-tester-data:/app/data \
-  schumann/signalwire-sms-tester:0.1.5
+  schumann/signalwire-sms-tester:0.1.6
 ```
 
 The port above assumes an HTTPS proxy on the Docker host. Local source builds:
@@ -377,7 +377,9 @@ docker run --rm --name signalwire-sms-tester \
 ```
 
 The multi-stage Node 22.23.4 Alpine-to-scratch image runs as UID/GID **1000:1000**,
-with Node, updated musl/C++ runtime libraries and CA bundle. Its base tag/digest
+with Node, updated musl/C++ runtime libraries and CA bundle. Application files
+are owned by root and are not writable by the runtime user; `/app/data` is owned
+by UID/GID 1000 for logs. Its base tag/digest
 are pinned and OS/library package metadata is retained for scanners. The final image has no
 shell or npm; its healthcheck invokes Node directly. Named volumes initialize
 with `/app/data` ownership; host bind mounts must allow UID/GID 1000 to write.
@@ -406,7 +408,10 @@ unref'ed sweep expires starting/pending tests even without API polling.
 
 Safe structured events go to stdout and `${DATA_DIR}/events.jsonl`. Appends and
 rotation are serialized; about 50 MiB rotates to a single `events.jsonl.1`
-backup. Event fields avoid arbitrary webhook/provider payloads. Credentials,
+backup. Pending disk/stdout writes are capped at 1000 events and 1 MiB and honor
+stdout backpressure. Overload drops output events and emits a `log_dropped` count
+when capacity returns; test evidence and completion criteria are unaffected.
+Event fields avoid arbitrary webhook/provider payloads. Credentials,
 auth/signature headers and message bodies are redacted before stdout and disk.
 Unrelated/raw SMS bodies are not retained in message summaries. Authenticated
 test inspection includes only the generated synthetic test body.
@@ -477,8 +482,11 @@ npm test
 
 Use `package.json` as the version source, Conventional Commits and SemVer tags
 `vMAJOR.MINOR.PATCH`. The `0.x` interface is unstable; minor versions may break
-compatibility. The current local branch is `master`; no remote/CI platform is
-configured. Wire the commands above into the actual CI platform when chosen.
+compatibility. The default branch is `master`; the Git repository is
+[`s-schumann/signalwire-sms-tester`](https://github.com/s-schumann/signalwire-sms-tester).
+No CI workflow is configured; the release checks are run explicitly.
+See [SECURITY_REVIEW.md](SECURITY_REVIEW.md) for the dated CVE audit and Claude
+Code review handoff, and [CLAUDE.md](CLAUDE.md) for the review entry point.
 The initial release is `0.1.0`, tagged `v0.1.0`. Registry publication is a separate
 action from pushing the Git repository. For subsequent releases update the changelog and use:
 

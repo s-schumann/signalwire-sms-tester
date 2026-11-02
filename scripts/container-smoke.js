@@ -13,7 +13,11 @@ try {
   const result = docker('exec', name, 'node', '--input-type=module', '-e', String.raw`
     import assert from 'node:assert/strict';
     import { readFile, writeFile, unlink, access, stat } from 'node:fs/promises';
+    import { constants } from 'node:fs';
     assert.equal(process.getuid(), 1000); assert.equal(process.getgid(), 1000);
+    assert.equal((await stat('/app/src/server.js')).uid, 0);
+    await assert.rejects(access('/app/src/server.js', constants.W_OK), {code:'EACCES'});
+    await assert.rejects(access('/app/package.json', constants.W_OK), {code:'EACCES'});
     assert.ok(Number(process.versions.node.split('.')[0]) >= 22);
     let health;
     for (let i=0;i<50;i++) {
@@ -34,7 +38,7 @@ try {
     await assert.rejects(access('/bin/sh'), {code:'ENOENT'});
     const https = await fetch('https://nodejs.org/', {signal:AbortSignal.timeout(10000)});
     assert.equal(https.ok,true); await https.body.cancel();
-    console.log(JSON.stringify({version:info.version,node:process.versions.node,arch:process.arch,uid:process.getuid(),health:true,authenticatedRead:true,mountedWrite:true,httpsCertificateValidation:true,shellAbsent:true}));
+    console.log(JSON.stringify({version:info.version,node:process.versions.node,arch:process.arch,uid:process.getuid(),health:true,authenticatedRead:true,applicationReadOnlyToRuntime:true,mountedWrite:true,httpsCertificateValidation:true,shellAbsent:true}));
   `);
   console.log(result);
   const healthcheck = JSON.parse(docker('inspect', '--format', '{{json .Config.Healthcheck.Test}}', name));

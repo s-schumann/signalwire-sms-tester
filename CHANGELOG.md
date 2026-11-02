@@ -3,6 +3,19 @@
 Changes follow Semantic Versioning. The 0.x interface is unstable; minor
 versions may introduce breaking changes.
 
+## 0.1.6 — 2026-11-02
+
+- Bound pending log output to 1 MiB / 1000 events, honor stdout backpressure and
+  report dropped-event counts after overload instead of accumulating writes.
+- Require UUID v4 callback test IDs and strict whole-string message SIDs; exclude
+  arbitrary callback query text from unmatched-status diagnostics.
+- Keep container application files root-owned and read-only to runtime UID 1000,
+  with a separate writable data directory and smoke coverage for file ownership.
+- Recheck current Node/Alpine CVEs and rebuild packages fresh. Retain the current
+  Node 22.23.4 security pin; document Scout's musl branch mismatch against Alpine
+  vendor fix records and independent Trivy results.
+- Add dated scanner evidence and an independent Claude Code security review brief.
+
 ## 0.1.5 — 2026-11-02
 
 - Add server-only `IGNORE_SENDER_FROM=false`; opting in ignores inbound sender

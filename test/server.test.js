@@ -464,6 +464,23 @@ test('rejected webhooks log bounded metadata and reasons without payloads, signa
   assert.equal(h.store.get(run.id).expected.signalWireStatus, false);
 });
 
+test('status callback IDs cannot reflect arbitrary query text into diagnostics or bypass exact correlation', async t => {
+  const h=await setup(t,{server:true,env:{SIGNALWIRE_VERIFY_WEBHOOKS:'off'}});
+  const run=(await(await h.post('/tests')).json()).test;
+  for(const id of ['private-query-marker','',run.id+'\n','-'.repeat(36)]){
+    const response=await h.post('/webhooks/signalwire/status?test_id='+encodeURIComponent(id),statusForm(),{headers:{authorization:''}});
+    assert.equal(response.status,400);
+  }
+  const unknown='00000000-0000-4000-8000-000000000000';
+  assert.equal((await h.post('/webhooks/signalwire/status?test_id='+unknown,statusForm(),{headers:{authorization:''}})).status,200);
+  assert.equal(h.store.get(run.id).expected.signalWireStatus,false);
+  assert.equal(JSON.stringify(h.logger.recent()).includes('private-query-marker'),false);
+  assert.equal(h.logger.recent().find(event=>event.type==='status_unmatched').testId,unknown);
+  assert.equal((await h.post('/webhooks/signalwire/status?test_id='+run.id,statusForm({MessageSid:'outbound-1\n'}),{headers:{authorization:''}})).status,400);
+  assert.equal((await h.post('/webhooks/signalwire/status?test_id='+run.id,statusForm(),{headers:{authorization:''}})).status,200);
+  assert.equal(h.store.get(run.id).expected.signalWireStatus,true);
+});
+
 test('provider timeout during synchronous check returns 504 with failed test ID', async t => {
   const h = await setup(t, { server: true, env: { SIGNALWIRE_REQUEST_TIMEOUT_MS: '5' }, fetch: async () => new Promise(() => {}) });
   const response = await h.request('/checks/round-trip?waitTimeoutMs=100');

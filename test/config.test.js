@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createConfig, loadDotEnv, sendConfigurationErrors, webhookConfigurationErrors, isE164, isSenderId, isSmsSender } from '../src/config.js';
+import { createConfig, loadDotEnv, sendConfigurationErrors, webhookConfigurationErrors, isE164, isSenderId, isSmsSender, isSid, isTestId } from '../src/config.js';
 import { ENV } from '../test-support/helpers.js';
 
 test('dotenv supports blank, quoted, comments and existing environment without exposing values', async t => {
@@ -52,6 +52,15 @@ test('sender follows the requested E.164 or 1–11 ASCII sender-ID grammar; dest
   for (const from of ['123456789012', 'Brand1234567', 'My Brand2']) assert.ok(sendConfigurationErrors(createConfig({ ...ENV, SIGNALWIRE_FROM: from })).includes('SIGNALWIRE_FROM'));
   assert.ok(sendConfigurationErrors(createConfig({ ...ENV, DEFAULT_TO: 'Brand123' })).includes('DEFAULT_TO'));
   assert.ok(sendConfigurationErrors(createConfig({ ...ENV, ALLOWED_TO_NUMBERS: 'Brand123' })).includes('ALLOWED_TO_NUMBERS'));
+});
+
+test('message and test IDs reject line terminators and noncanonical token shapes', () => {
+  assert.equal(isSid('message_sid-123'), true);
+  assert.equal(isSid('x'.repeat(128)), true);
+  for (const sid of ['', 'x'.repeat(129), 'sid\n', 'sid\r', 'sid\u2028', 'sid\u2029', 'bad sid', null]) assert.equal(isSid(sid), false);
+  const id = 'ac59184c-2482-49e5-bee7-12eecd1cab20';
+  assert.equal(isTestId(id), true);
+  for (const value of [id+'\n', id.replace('-49e5-', '-19e5-'), 'private-query-marker', '-'.repeat(36), null]) assert.equal(isTestId(value), false);
 });
 
 test('separate receiver project needs its signing key, explicit URLs keep verification enabled', () => {

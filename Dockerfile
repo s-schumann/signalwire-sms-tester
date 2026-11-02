@@ -1,10 +1,10 @@
-# Pin the October security release; update this tag and digest together.
+# Current Node 22 security release as checked on 2026-11-02; update tag/digest together.
 FROM node:22.23.4-alpine3.24@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS runtime
 RUN apk add --no-cache --upgrade 'musl>=1.2.6-r3' libgcc libstdc++ ca-certificates-bundle
 WORKDIR /app
 COPY package.json ./
 COPY src ./src
-RUN mkdir -p /app/data && chown -R 1000:1000 /app
+RUN mkdir -p /app/data && chown 1000:1000 /app/data
 # Preserve scanner-visible metadata only for libraries shipped in scratch.
 RUN node --input-type=module -e 'import fs from "node:fs"; const names=new Set(["musl","libgcc","libstdc++","ca-certificates-bundle"]); const records=fs.readFileSync("/lib/apk/db/installed","utf8").trim().split("\n\n").filter(record=>names.has(record.match(/^P:(.+)$/m)?.[1])); fs.mkdirSync("/runtime/lib/apk/db",{recursive:true}); fs.writeFileSync("/runtime/lib/apk/db/installed",records.join("\n\n")+"\n\n");'
 
@@ -21,7 +21,9 @@ COPY --from=runtime /usr/lib/libgcc_s.so.1 /usr/lib/
 COPY --from=runtime /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=runtime /etc/os-release /etc/alpine-release /etc/
 COPY --from=runtime /runtime/ /
-COPY --from=runtime --chown=1000:1000 /app /app
+COPY --from=runtime /app/package.json /app/package.json
+COPY --from=runtime /app/src /app/src
+COPY --from=runtime --chown=1000:1000 /app/data /app/data
 USER 1000:1000
 EXPOSE 3000
 STOPSIGNAL SIGTERM

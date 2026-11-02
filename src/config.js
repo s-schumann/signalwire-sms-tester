@@ -11,7 +11,9 @@ export const isE164 = value => typeof value === 'string' && /^\+[1-9][0-9]{1,14}
 export const isSenderId = value => typeof value === 'string' && value.length >= 1 && value.length <= 11 &&
   !/[^A-Za-z0-9_.+*,#-]/.test(value);
 export const isSmsSender = value => isE164(value) || isSenderId(value);
-export const isSid = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
+export const isSid = value => typeof value === 'string' && value.length >= 1 && value.length <= 128 && !/[^A-Za-z0-9_-]/.test(value);
+export const isTestId = value => typeof value === 'string' && value.length === 36 &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
 // Intentionally small dotenv grammar: single-line values, quotes, and comments.
 // Existing environment entries (even empty ones) always win.

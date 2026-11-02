@@ -334,3 +334,32 @@ Redeploy `schumann/signalwire-sms-tester:0.1.5` with `IGNORE_SENDER_FROM=true` i
 CapRover to permit inbound sender rewriting. The default stays `false`. No
 deployment/provider setting was changed, no live SMS was sent and no Git source
 was pushed by these release checks.
+
+## CVE audit and review preparation — 0.1.6
+
+The user authorized current-CVE investigation, necessary updates, a complete
+retest, Docker/Git publication and preparation for an independent Claude Code
+security review. The configured origin is now the public
+`s-schumann/signalwire-sms-tester` GitHub repository; its master/tag history was
+checked against the local baseline before publication work.
+
+Node 22.23.4 is still the latest official 22.x security release as of 2026-11-02.
+Trivy 0.76.1 with its 2026-11-02 database finds no known baseline OS/Node package
+vulnerabilities. Docker Scout reports CVE-2026-107891 against musl 1.2.6-r3, but
+Alpine's 3.24 secdb and tracker explicitly mark r3 fixed; r6 is the edge-branch
+fix. The raw finding and vendor evidence are retained without suppressions.
+
+Application review found an unbounded pending log-write queue and arbitrary
+status test-ID text entering diagnostics. Pending stdout/disk writes are now
+bounded with backpressure and explicit loss counts. Callback IDs require UUID
+v4, message SIDs reject trailing line terminators, and diagnostic IDs are
+validated. The image separates root-owned application files from UID 1000's
+writable data directory. Runtime pins remain current; package installation is
+refreshed during release builds.
+
+Syntax checks and all **63** local mocked tests pass on Node 24.22.2, including
+blocked/oversized log output and malicious callback identifiers. The dated
+evidence directory, `SECURITY_REVIEW.md` and `CLAUDE.md` prepare an independent
+review; Claude Code itself has not been run. Browser access remains stopped,
+temporary JSON verification-off behavior is retained, and no live SMS/provider
+or CapRover mutation is part of this work.

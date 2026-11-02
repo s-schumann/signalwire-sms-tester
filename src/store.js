@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { HttpError } from './errors.js';
+import { isTestId } from './config.js';
 
 const OUTBOUND_STATES = new Set(['queued', 'sending', 'sent', 'delivered', 'failed', 'undelivered']);
 const FAILURES = new Set(['failed', 'undelivered']);
@@ -150,7 +151,7 @@ export class Store extends EventEmitter {
     const knownId = this.outboundIndex.get(sid);
     const id = testId || knownId;
     const row = this.tests.get(id);
-    const diagnostic = reason => this.recordEvent(null, 'status_unmatched', { testId: id, outboundMessageSid: sid, status, errorCode, reason });
+    const diagnostic = reason => this.recordEvent(null, 'status_unmatched', { ...(isTestId(id) ? { testId: id } : {}), outboundMessageSid: sid, status, errorCode, reason });
     if (projectId !== this.config.projectId || !row || (testId && knownId && knownId !== testId)) { diagnostic('Unknown or conflicting test/SID/project'); return; }
     if (terminal(row.record) || event.received < row.created || event.received >= row.deadline) { diagnostic('Finished or outside deadline'); return; }
     if (from !== row.record.request.from || to !== row.record.request.to || (row.record.outboundMessageSid && row.record.outboundMessageSid !== sid)) { diagnostic('SID or numbers do not match'); return; }

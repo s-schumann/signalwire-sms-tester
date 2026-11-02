@@ -25,8 +25,13 @@ ES modules, built-ins only. `package.json` is the version source.
   fail-closed with verification on until JSON signing is implemented separately.
 - Keep state, evidence, deduplication and logs bounded. Do not log arbitrary SMS
   bodies, credentials, signatures or upstream error payloads.
+- Bound pending log writes and honor stdout backpressure; preserve explicit
+  payload-free loss diagnostics under overload. Callback test IDs are UUID v4.
 - Single process/replica; events.jsonl is an audit log, not restored state.
 - Conventional Commits, SemVer `vX.Y.Z`, release-only `latest`. Do not push,
   publish containers or configure provider resources without user authorization.
 - Validate scratch image libraries, certificates, non-root mounted writes,
   liveness and signal shutdown on each release architecture.
+- Keep application files root-owned and non-writable to runtime UID 1000; only
+  the data directory needs runtime ownership. Review context is in
+  `SECURITY_REVIEW.md` / `CLAUDE.md`.

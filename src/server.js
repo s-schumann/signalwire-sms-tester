@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { loadConfig, sendConfigurationErrors, webhookConfigurationErrors, isE164, isSmsSender, isSid, MAX_BODY_BYTES, MAX_MESSAGE_CHARS, MAX_TIMEOUT_MS } from './config.js';
+import { loadConfig, sendConfigurationErrors, webhookConfigurationErrors, isE164, isSmsSender, isSid, isTestId, MAX_BODY_BYTES, MAX_MESSAGE_CHARS, MAX_TIMEOUT_MS } from './config.js';
 import { HttpError } from './errors.js';
 import { createMessage } from './signalwire.js';
 import { parseForm, parseJsonWebhook, verifyForm, safeEqual, signedWebhookUrl, statusCallbackUrl } from './signature.js';
@@ -141,7 +141,7 @@ export function createApp(config, store, { fetch = globalThis.fetch, now = Date.
         webhookContext = {
           webhook: inbound ? 'inbound' : 'status',
           contentType: ['application/json', 'application/x-www-form-urlencoded'].includes(contentType) ? contentType : 'unsupported',
-          ...(testId?.length === 36 && /^[0-9a-f-]+$/i.test(testId) ? { testId } : {}),
+          ...(isTestId(testId) ? { testId } : {}),
         };
       }
       if (url.searchParams.has('api_key')) throw new HttpError(400, 'API keys are accepted only in headers');
@@ -183,7 +183,7 @@ export function createApp(config, store, { fetch = globalThis.fetch, now = Date.
         const messageStatus = alias(form, 'MessageStatus', 'SmsStatus')?.toLowerCase();
         if (!messageStatus || !/^[a-z-]{1,40}$/.test(messageStatus)) throw new HttpError(400, 'Status webhook requires MessageStatus');
         const errorCode = /^[A-Za-z0-9_-]{1,32}$/.test(form.ErrorCode || '') ? form.ErrorCode : null;
-        if (url.searchParams.has('test_id') && !url.searchParams.get('test_id')) throw new HttpError(400, 'test_id must not be empty');
+        if (url.searchParams.has('test_id') && !isTestId(url.searchParams.get('test_id'))) throw new HttpError(400, 'test_id must be a UUID v4');
         store.receiveStatus({ testId: url.searchParams.get('test_id') ?? undefined, projectId: form.AccountSid, sid, status: messageStatus, from: form.From, to: form.To, errorCode });
         return json(res, 200, { ok: true });
       }
