@@ -2,9 +2,9 @@
 
 The service described by `HANDOVER.md` is implemented as an independent Node.js
 ES module project, initially version **0.1.0**, followed by the **0.1.1** JSON
-compatibility and **0.1.2** alphanumeric sender patches. The original handover remains the brief;
-The **0.1.3** callback parsing/diagnostics patch is described below.
-`README.md` describes the delivered behavior and operator setup.
+compatibility and **0.1.2** alphanumeric sender patches. The **0.1.3** callback
+parsing/diagnostics patch is described below. The original handover remains the
+brief; `README.md` describes the delivered behavior and operator setup.
 
 ## Delivered
 
@@ -219,3 +219,26 @@ the inbound-first held JSON request, nullable status metadata, mandatory status
 requirement and secret-free rejection logging. Browser access was stopped at
 the user's request; further work uses source and existing logs. No provider or
 CapRover settings were changed, and no live SMS was sent by this patch work.
+
+The **0.1.3** patch is published and verified:
+
+- Source/tag: `2ea77e37da6c031c8cf6e09517a64a86e59695d7` / `v0.1.3`.
+- Aliases `0.1.3`, `v0.1.3`, `latest` and the full source SHA resolve to
+  `sha256:5080bb6d5aff7680b7e868fcb7e725e54aca4d25e2f1997c250b96609b4a858a`.
+- Linux AMD64/ARM64 manifests and both SBOM/provenance attestations are present.
+- All **52** mocked tests also pass on the Node 22.23.4 container runtime. Both
+  architecture candidates pass health, HTTPS certificate, authentication,
+  non-root mounted write, log persistence and clean shutdown checks; AMD64 runs
+  under emulation.
+- Both published images were pulled by immutable digest and checked with
+  external networking disabled. Their real server entry point sends to a local
+  fake provider, remains pending after inbound receipt alone, then immediately
+  returns HTTP 200 to the held client after matching status with nullable error
+  metadata. Rejected-project callbacks produce safe diagnostic events.
+
+Redeploy `schumann/signalwire-sms-tester:0.1.3` in CapRover and start a fresh
+round-trip test. If status evidence remains missing, inspect `webhook_rejected`,
+`status_received` and `status_unmatched` events and the gateway's callback
+delivery attempt. The production callback failure is not yet confirmed fixed.
+Browser access remains stopped, no deployment/provider settings were changed,
+and no Git source was pushed to a remote.
